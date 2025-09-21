@@ -5,7 +5,6 @@ This document tracks the proceedings and updates during the project.
 ---
 
 ### Date: 08-09-2025
-### Work Done:
 - Generated a database for the project locally on my device on postgresql, after working and expanding on our database and backend more, will migrate it from a local device to a server for our backend to access freely (Contributers: Harshvir)
 ---
 ### Date: 12-09-2025

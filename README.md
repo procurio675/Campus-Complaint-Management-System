@@ -15,7 +15,7 @@ The system integrates **AI-powered classification** for auto-tagging complaints 
 ### 📝 Complaint Submission & Tracking
 - Students can submit complaints with **text + file attachments**.
 - Complaints auto-classified by AI into:
-  - **8 Committees:** Academic, Annual Fest, Cafeteria, Cultural, Hostel Management, Sports, Student Placement, Tech-Support.
+  - **8 Committees:** Hostel Management, Cafeteria, Tech-Support, Sports, Academic, Annual Fest, Cultural, Student Placement.
   - **3 Priorities:** High, Medium, Low.
 - Track complaint status: **Pending → In-Process → Resolved**.
 

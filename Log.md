@@ -29,6 +29,8 @@ Applied elicitation techniques like surveys for students and interviews to gathe
 (contributers: neel, tirth, krutant, abhishek)
 ---
 ### Date:21-09-25
--Implement Sprint 1 Backend (User Authentication & Setup)
+- Implemented Sprint 1 Frontend (Login page)
+(contributers: Krutant,Krish Malhotra)
+- Implement Sprint 1 Backend (User Authentication & Setup)
 (contributers : Abhishek ,Tirth)
 ---

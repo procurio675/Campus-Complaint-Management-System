@@ -1,4 +1,4 @@
-# Project Log
+# Project Log 
 
 This document tracks the proceedings and updates during the project.  
 

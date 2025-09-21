@@ -28,3 +28,7 @@ Applied elicitation techniques like surveys for students and interviews to gathe
 - Wrote functional and non functional requirements
 (contributers: neel, tirth, krutant, abhishek)
 ---
+### Date:21-09-25
+-Implement Sprint 1 Backend (User Authentication & Setup)
+(contributers : Abhishek ,Tirth)
+---

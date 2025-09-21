@@ -1,11 +1,11 @@
-# 🏫 DAU Campus Complaint Resolve
+# DAU Campus Complaint Resolve
 
 A smart **Campus Complaint Management System** designed for **DAU Institute**, enabling students and staff to log, track, and resolve campus-related complaints in an efficient and transparent way.  
 The system integrates **AI-powered classification** for auto-tagging complaints into relevant committees and prioritizing them based on urgency.
 
 ---
 
-## 🚀 Features
+## Features
 
 ### 🔐 User Authentication
 - Role-based login: **Student, Committee, Admin**.
@@ -70,8 +70,8 @@ The system integrates **AI-powered classification** for auto-tagging complaints 
 ## 👥 Team Roles
 
 - **Frontend Team:** UI/UX design, dashboards, complaint submission form.  
-- **Backend Team:** APIs, authentication, complaint lifecycle, notifications.  
-- **AI Team:** LLM integration, prompt engineering, feedback loop.  
+- **Backend Team:** APIs, authentication, notifications.  
+- **AI Team:** LLM integration, prompt engineering.  
 - **All Teams:** Shared database design & integration.  
 
 ---

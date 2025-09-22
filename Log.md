@@ -28,6 +28,10 @@ Applied elicitation techniques like surveys for students and interviews to gathe
 - Wrote functional and non functional requirements
 (contributers: neel, tirth, krutant, abhishek)
 ---
+### Date:19-09-25
+- Wrote User stories
+- (contributors: KrishP, Neel, Sanya, Het)
+---
 ### Date:21-09-25
 - Implemented Sprint 1 Frontend (Login page)
 (contributers: Krutant,Krish Malhotra)

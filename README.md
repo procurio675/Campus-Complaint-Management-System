@@ -26,7 +26,7 @@ The system integrates **AI-powered classification** for auto-tagging complaints 
 
 ### 🔔 Notifications & Escalations
 - Email for complaint updates.
-- Auto-escalation for overdue or highly negative (sentiment) complaints.
+- Auto-escalation for overdue complaints.
 
 ### 📈 Analytics
 - Trends in complaint types and priorities.
@@ -35,9 +35,8 @@ The system integrates **AI-powered classification** for auto-tagging complaints 
 - Filtering & search functionality.
 
 ### 📑 Reports
-- Generate reports (CSV) for committees and admins.
+- Generate reports (CSV/PDF) for committees and admins.
 - Privacy-aware → anonymous complaints stay masked.
-- Export history maintained.
 
 ### 🛡 Security
 - Protection of sensitive student data.
@@ -47,7 +46,7 @@ The system integrates **AI-powered classification** for auto-tagging complaints 
 
 ## 🤖 AI Integration
 
-- **Pre-trained LLM APIs** (Gemini / Groq / OpenAI) used for:
+- **Pre-trained LLM APIs** (Gemini) used for:
   - Auto-categorizing complaints into committees.
   - Predicting priority levels.
 - **Feedback Loop:** Committee/Admin overrides are logged → reused in prompts → system gradually improves classification accuracy.

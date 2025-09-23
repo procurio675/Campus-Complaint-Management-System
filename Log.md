@@ -31,6 +31,7 @@ Applied elicitation techniques like surveys for students and interviews to gathe
 ### Date:19-09-25
 - Wrote User stories
 - (contributors: KrishP, Neel, Sanya, Het)
+- interviewed girls HMC representative (contributers: sanya)
 ---
 ### Date:21-09-25
 - Implemented Sprint 1 Frontend (Login page)

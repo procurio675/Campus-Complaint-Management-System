@@ -40,9 +40,9 @@ Applied elicitation techniques like surveys for students and interviews to gathe
 (contributers : Abhishek ,Tirth)
 ---
 ### Date:29-09-25
--updated and redesigned login page
+- updated and redesigned login page
 (contributers: krishP )
--created dummy complaints for each committee 
+- created dummy complaints for each committee 
 (contributers: Sanya)
 ---
 ### Date:30-09-25

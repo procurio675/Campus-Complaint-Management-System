@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import RoleLogin from "./pages/RoleLogin";
-import Register from "./pages/Register";
 import StudentDashboard from "./pages/StudentDashboard";
 import CommitteeDashboard from "./pages/CommitteeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -13,7 +12,7 @@ function App() {
   const location = useLocation();
 
   // Paths where Navbar & Footer should be hidden
-  const noNavbarRoutes = ["/login", "/role-login", "/register"];
+  const noNavbarRoutes = ["/login", "/role-login"];
   const showNavbar = !noNavbarRoutes.includes(location.pathname);
 
   return (
@@ -29,7 +28,6 @@ function App() {
           {/* Authentication Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/role-login" element={<RoleLogin />} />
-          <Route path="/register" element={<Register />} />
 
           {/* Dashboards */}
           <Route path="/student-dashboard" element={<StudentDashboard />} />

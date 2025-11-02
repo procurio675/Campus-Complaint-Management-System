@@ -1,14 +1,68 @@
 import React from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+
+// Our mock "database"
+const mockUsers = {
+  admin: {
+    email: "admin@campus.com",
+    pass: "admin123",
+  },
+  student: {
+    email: "student@campus.com",
+    pass: "student123",
+  },
+  committee: {
+    email: "committee@campus.com",
+    pass: "committee123",
+  },
+};
 
 const RoleLogin = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const role = location.state?.role || "User";
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    navigate("/student-dashboard"); // change this later as per role
+    setError(""); // Clear any previous errors
+
+    const emailRegex =
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    // 1. Email Format Check
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    // Find the correct user from our mock database based on the role
+    const expectedUser = mockUsers[role];
+
+    // 2. Account Exists Check
+    if (!expectedUser || expectedUser.email !== email) {
+      setError(`No ${role} account found with this email.`);
+      return; 
+    }
+
+    // 3. Password Check
+    if (expectedUser.pass !== password) {
+      setError("Incorrect password. Please try again.");
+      return; 
+    }
+
+    // --- SUCCESS ---
+    if (role === "admin") {
+      navigate("/admin-dashboard");
+    } else if (role === "student") {
+      navigate("/student-dashboard");
+    } else if (role === "committee") {
+      navigate("/committee-dashboard");
+    }
   };
 
   return (
@@ -40,6 +94,8 @@ const RoleLogin = () => {
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
@@ -56,8 +112,14 @@ const RoleLogin = () => {
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+
+          {error && (
+            <p className="text-red-500 text-center text-sm">{error}</p>
+          )}
 
           <button
             type="submit"
@@ -66,7 +128,6 @@ const RoleLogin = () => {
             Login
           </button>
 
-          {/* Forgot password link centered */}
           <div className="text-center">
             <button
               type="button"

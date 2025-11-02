@@ -1,52 +1,54 @@
 import React from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import Navbar from "./components/Navbar";
+// --- UPDATED --- : Removed useLocation, it's not needed here
+import { Routes, Route, Navigate } from "react-router-dom";
+
+// --- UPDATED --- : Removed Navbar. The dashboards will render their own.
+// import Navbar from "./components/Navbar"; 
+
 import Login from "./pages/Login";
 import RoleLogin from "./pages/RoleLogin";
 import StudentDashboard from "./pages/StudentDashboard";
 import CommitteeDashboard from "./pages/CommitteeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 
-
 function App() {
-  const location = useLocation();
-
-  // Paths where Navbar & Footer should be hidden
-  const noNavbarRoutes = ["/login", "/role-login"];
-  const showNavbar = !noNavbarRoutes.includes(location.pathname);
+  // --- UPDATED ---
+  // All 'showNavbar' logic and layout wrappers have been removed.
+  // We return <Routes> directly, so each page component controls
+  // its own full-screen layout.
 
   return (
-    <div className="min-h-screen flex flex-col overflow-hidden">
-      {/* Show Navbar only for dashboard or inside app */}
-      {showNavbar && <Navbar />}
+    <Routes>
+      {/* Default route -> goes to Login page */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full overflow-hidden">
-        <Routes>
-          {/* Default route -> goes to Login page */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Authentication Routes (these are full-page components) */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/role-login" element={<RoleLogin />} />
 
-          {/* Authentication Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/role-login" element={<RoleLogin />} />
+      {/* Dashboard Routes (these are full-page LAYOUT components) */}
+      
+      {/* --- IMPORTANT ---
+        Notice the "/*" at the end of the path.
+        This tells React Router that the <StudentDashboard> component
+        will handle its own set of "nested" routes inside it
+        (like /student-dashboard/add-complaint or /student-dashboard/profile)
+      */}
+      <Route path="/student-dashboard/*" element={<StudentDashboard />} />
+      <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+      <Route path="/committee-dashboard/*" element={<CommitteeDashboard />} />
 
-          {/* Dashboards */}
-          <Route path="/student-dashboard" element={<StudentDashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/committee-dashboard" element={<CommitteeDashboard />} />
 
-
-          {/* 404 - Catch all unmatched routes */}
-          <Route
-            path="*"
-            element={
-              <div className="text-center text-lg text-gray-600">
-                404 - Page Not Found
-              </div>
-            }
-          />
-        </Routes>
-      </main>
-    </div>
+      {/* 404 - Catch all unmatched routes */}
+      <Route
+        path="*"
+        element={
+          <div className="text-center text-lg text-gray-600 p-20">
+            404 - Page Not Found
+          </div>
+        }
+      />
+    </Routes>
   );
 }
 

@@ -29,7 +29,7 @@ const RoleLogin = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError(""); // Clear any previous errors
+    setError("");
 
     const emailRegex =
       /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;

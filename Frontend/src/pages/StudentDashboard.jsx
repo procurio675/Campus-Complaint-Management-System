@@ -1,118 +1,117 @@
 import React from "react";
+import { useState, useRef, useEffect } from "react";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import { FaBell, FaUserCircle, FaChevronDown, FaPlus } from "react-icons/fa";
+import { FiLogOut } from "react-icons/fi";
+
 import Sidebar from "../components/Sidebar";
+import DashboardHome from "./DashboardHome";
+import ProfilePage from "./ProfilePage";
+
+import AddComplaintPage from "./AddComplaintPage"; 
+
+const MyComplaintsPage = () => (
+  <div className="bg-white p-6 rounded-xl shadow-lg">
+    <h1 className="text-2xl font-bold">My Complaints</h1>
+    <p className="mt-4">This page will list all complaints filed by you.</p>
+  </div>
+);
+
+const AllComplaintsPage = () => (
+  <div className="bg-white p-6 rounded-xl shadow-lg">
+    <h1 className="text-2xl font-bold">All Complaints</h1>
+    <p className="mt-4">
+      This page will list all public complaints on campus.
+    </p>
+  </div>
+);
 
 export default function StudentDashboard() {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    navigate("/login");
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
+
   return (
-    <div className="flex bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar role="student" />
-
-      {/* Main content */}
-      <div className="flex-1 ml-32 mt-16 h-[calc(100vh-4rem)] overflow-y-auto px-6 py-6">
-        {/* Welcome Section */}
-        <section className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">
-            Welcome, Krutant 👋
+    <div className="flex h-screen bg-white">
+      <Sidebar />
+      <div className="flex-1 flex flex-col pl-64">
+       
+        <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b">
+         
+          <h1 className="text-lg font-semibold text-gray-800">
+            Campus Complaint Management System
           </h1>
-          <p className="text-gray-600 mt-1">
-            Here’s an overview of your recent complaint activity.
-          </p>
-        </section>
-
-        {/* Quick Stats */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-green-50 border-l-4 border-green-600 p-4 rounded-lg shadow-sm">
-            <h2 className="text-gray-700 text-sm font-medium">Resolved</h2>
-            <p className="text-xl font-bold text-green-700 mt-1">3</p>
-          </div>
-          <div className="bg-yellow-50 border-l-4 border-yellow-600 p-4 rounded-lg shadow-sm">
-            <h2 className="text-gray-700 text-sm font-medium">In Progress</h2>
-            <p className="text-xl font-bold text-yellow-700 mt-1">2</p>
-          </div>
-          <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded-lg shadow-sm">
-            <h2 className="text-gray-700 text-sm font-medium">Pending</h2>
-            <p className="text-xl font-bold text-red-700 mt-1">1</p>
-          </div>
-          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg shadow-sm">
-            <h2 className="text-gray-700 text-sm font-medium">
-              Avg. Resolution Time
-            </h2>
-            <p className="text-xl font-bold text-blue-700 mt-1">4 Days</p>
-          </div>
-        </section>
-
-        {/* Recent Complaints */}
-        <section className="bg-white rounded-lg shadow-sm p-5 mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">
-            Recent Complaints
-          </h3>
-          <table className="min-w-full text-sm text-gray-600">
-            <thead>
-              <tr className="bg-gray-100 text-gray-700">
-                <th className="py-2 px-3 text-left">Complaint ID</th>
-                <th className="py-2 px-3 text-left">Department</th>
-                <th className="py-2 px-3 text-left">Status</th>
-                <th className="py-2 px-3 text-left">Date</th>
-                <th className="py-2 px-3 text-left">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b hover:bg-gray-50">
-                <td className="py-2 px-3">#124</td>
-                <td className="py-2 px-3">Maintenance</td>
-                <td className="py-2 px-3 text-green-700 font-medium">Resolved</td>
-                <td className="py-2 px-3">29 Oct 2025</td>
-                <td className="py-2 px-3">
-                  <button className="text-blue-600 hover:underline">View</button>
-                </td>
-              </tr>
-              <tr className="border-b hover:bg-gray-50">
-                <td className="py-2 px-3">#125</td>
-                <td className="py-2 px-3">IT Department</td>
-                <td className="py-2 px-3 text-yellow-700 font-medium">
-                  In Progress
-                </td>
-                <td className="py-2 px-3">30 Oct 2025</td>
-                <td className="py-2 px-3">
-                  <button className="text-blue-600 hover:underline">View</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        {/* Quick Actions + Announcements */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-          {/* Quick Actions */}
-          <div className="bg-white p-5 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Quick Actions
-            </h3>
-            <div className="space-y-2">
-              <button className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition">
-                ➕ Add New Complaint
+          <div className="flex items-center gap-6">
+            <button className="text-gray-500 hover:text-gray-800 transition-colors">
+              <FaBell size={22} />
+            </button>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+                  N
+                </div>
+                <span className="font-semibold text-gray-700 hidden md:block">
+                  Name
+                </span>
+                <FaChevronDown
+                  size={12}
+                  className={`text-gray-500 transition-transform ${
+                    dropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
               </button>
-              <button className="w-full bg-gray-100 text-gray-800 py-2 rounded-md hover:bg-gray-200 transition">
-                🔍 Track Complaint Status
-              </button>
-              <button className="w-full bg-gray-100 text-gray-800 py-2 rounded-md hover:bg-gray-200 transition">
-                📄 View All Complaints
-              </button>
+              {dropdownOpen && (
+                <div className="absolute top-full right-0 mt-3 w-48 bg-white rounded-lg shadow-xl z-10 overflow-hidden border">
+                  <Link
+                    to="/student-dashboard/profile"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <FaUserCircle />
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <FiLogOut />
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+        </header>
 
-          {/* Announcements */}
-          <div className="bg-white p-5 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Announcements
-            </h3>
-            <ul className="list-disc pl-5 text-gray-700 space-y-1">
-              <li>The maintenance department will be closed on Sunday (Nov 3).</li>
-              <li>Your complaint #124 has been marked as resolved.</li>
-              <li>New system update coming next week with improved tracking.</li>
-            </ul>
-          </div>
-        </section>
+        <main className="flex-1 overflow-y-auto p-8">
+          <Routes>
+            <Route path="/" element={<DashboardHome />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="add-complaint" element={<AddComplaintPage />} />
+            <Route path="my-complaints" element={<MyComplaintsPage />} />
+            <Route path="all-complaints" element={<AllComplaintsPage />} />
+          </Routes>
+        </main>
       </div>
     </div>
   );

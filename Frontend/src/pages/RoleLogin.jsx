@@ -1,67 +1,80 @@
 import React from "react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-// Our mock "database"
-const mockUsers = {
-  admin: {
-    email: "admin@campus.com",
-    pass: "admin123",
-  },
-  student: {
-    email: "student@campus.com",
-    pass: "student123",
-  },
-  committee: {
-    email: "committee@campus.com",
-    pass: "committee123",
-  },
-};
+import axios from "axios";
 
 const RoleLogin = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  // Get the role 
   const role = location.state?.role || "User";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     const emailRegex =
       /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-    // 1. Email Format Check
+    // 1. Email Format Checker 
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address.");
+      setLoading(false);
       return;
     }
 
-    // Find the correct user from our mock database based on the role
-    const expectedUser = mockUsers[role];
+    try {
+      // Call backend login endpoint
+      // We send the 'role' to the backend as 'intendedRole'
+      const { data } = await axios.post(
+        `http://localhost:5000/api/auth/login`,
+        { email, password, intendedRole: (role || "").toLowerCase() },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-    // 2. Account Exists Check
-    if (!expectedUser || expectedUser.email !== email) {
-      setError(`No ${role} account found with this email.`);
-      return; 
-    }
+      // Backend response: { _id, name, email, role, committeeType, token }
+      const userRole = (data?.role || "").toLowerCase();
 
-    // 3. Password Check
-    if (expectedUser.pass !== password) {
-      setError("Incorrect password. Please try again.");
-      return; 
-    }
+      // --- Role check removed ---
+      // The backend now handles the role check for us.
+    
+      localStorage.setItem("ccms_token", data.token);
+      localStorage.setItem(
+        "ccms_user",
+        JSON.stringify({
+          _id: data._id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          committeeType: data.committeeType,
+        })
+      );
 
-    // --- SUCCESS ---
-    if (role === "admin") {
-      navigate("/admin-dashboard");
-    } else if (role === "student") {
-      navigate("/student-dashboard");
-    } else if (role === "committee") {
-      navigate("/committee-dashboard");
+      // Route based on the role returned from the backend
+      if (userRole === "admin") {
+        navigate("/admin-dashboard");
+      } else if (userRole === "student") {
+        navigate("/student-dashboard");
+      } else if (userRole === "committee") {
+        navigate("/committee-dashboard");
+      } else {
+        // Fallback if role unknown
+        navigate("/");
+      }
+    } catch (err) {
+      // This will now catch both "Invalid email/password"
+      // AND "This is a student account. Please use the student login portal."
+      const msg =
+        err?.response?.data?.message || "Login failed. Please try again.";
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,8 +137,9 @@ const RoleLogin = () => {
           <button
             type="submit"
             className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
+            disabled={loading}
           >
-            Login
+            {loading ? "Signing in..." : "Login"}
           </button>
 
           <div className="text-center">

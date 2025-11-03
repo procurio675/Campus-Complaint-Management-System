@@ -32,7 +32,12 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    navigate("/login");
+    // Clear all authentication data from localStorage
+    localStorage.removeItem("ccms_token");
+    localStorage.removeItem("ccms_user");
+    
+    // Navigate to login and replace history to prevent back button access
+    navigate("/login", { replace: true });
   };
 
   useEffect(() => {

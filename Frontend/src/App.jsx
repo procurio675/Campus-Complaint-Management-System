@@ -10,6 +10,7 @@ import RoleLogin from "./pages/RoleLogin";
 import StudentDashboard from "./pages/StudentDashboard";
 import CommitteeDashboard from "./pages/CommitteeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   // --- UPDATED ---
@@ -34,9 +35,30 @@ function App() {
         will handle its own set of "nested" routes inside it
         (like /student-dashboard/add-complaint or /student-dashboard/profile)
       */}
-      <Route path="/student-dashboard/*" element={<StudentDashboard />} />
-      <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
-      <Route path="/committee-dashboard/*" element={<CommitteeDashboard />} />
+      <Route 
+        path="/student-dashboard/*" 
+        element={
+          <ProtectedRoute allowedRole="student">
+            <StudentDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/admin-dashboard/*" 
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/committee-dashboard/*" 
+        element={
+          <ProtectedRoute allowedRole="committee">
+            <CommitteeDashboard />
+          </ProtectedRoute>
+        } 
+      />
 
 
       {/* 404 - Catch all unmatched routes */}

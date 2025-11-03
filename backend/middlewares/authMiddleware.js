@@ -33,4 +33,17 @@ const protect = async (req, res, next) => {
   }
 };
 
-export { protect };
+// NEW: Middleware to check for specific roles
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    // req.user is attached by the 'protect' middleware
+    if (!req.user||!roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        message: `Forbidden: This resource is only accessible by users with the role(s): ${roles.join(', ')}` 
+      });
+    }
+    next();
+  };
+};
+
+export { protect, authorize };

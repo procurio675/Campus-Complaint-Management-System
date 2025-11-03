@@ -1,7 +1,8 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const User = require('./models/userModel');
-require('dotenv').config();
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import User from './models/userModel.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const seedDatabase = async () => {
   try {
@@ -12,7 +13,7 @@ const seedDatabase = async () => {
     await User.deleteMany({});
     console.log('Cleared existing users.');
 
-    // 2. Admin + Students from the image
+    // 2. Admin + Students + Committee Members
     const usersToSeed = [
       { name: 'College Admin', email: 'admin@dau.ac.in', password: 'admin123', role: 'admin' },
 
@@ -27,6 +28,14 @@ const seedDatabase = async () => {
       { name: 'Rajdeep Patel', email: '202301092@dau.ac.in', password: 'rajdeep123', role: 'student' },
       { name: 'Sanya Vaishnavi', email: '202301117@dau.ac.in', password: 'sanya123', role: 'student' },
       { name: 'Krish R Malhotra', email: '202301099@dau.ac.in', password: 'malhotra123', role: 'student' },
+
+      // Committee Members (one for each committee type)
+      { name: 'Canteen Committee', email: 'canteen@dau.ac.in', password: 'canteen123', role: 'committee', committeeType: 'Canteen' },
+      { name: 'Hostel Committee', email: 'hostel@dau.ac.in', password: 'hostel123', role: 'committee', committeeType: 'Hostel' },
+      { name: 'Sports Committee', email: 'sports@dau.ac.in', password: 'sports123', role: 'committee', committeeType: 'Sports' },
+      { name: 'Tech Committee', email: 'tech@dau.ac.in', password: 'tech123', role: 'committee', committeeType: 'Tech Committee' },
+      { name: 'Disciplinary Committee', email: 'disciplinary@dau.ac.in', password: 'disciplinary123', role: 'committee', committeeType: 'Disciplinary Action' },
+      { name: 'Maintenance Committee', email: 'maintenance@dau.ac.in', password: 'maintenance123', role: 'committee', committeeType: 'Maintenance' },
     ];
 
     // Hash passwords
@@ -36,7 +45,7 @@ const seedDatabase = async () => {
     }));
 
     await User.insertMany(processedUsers);
-    console.log('Admin and student users seeded successfully.');
+    console.log('Admin, student, and committee users seeded successfully.');
 
   } catch (error) {
     console.error('Error seeding the database:', error);

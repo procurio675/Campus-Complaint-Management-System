@@ -7,7 +7,7 @@ import AdminSidebar from "../components/AdminSidebar";
 import DashboardHome from "./DashboardHome";
 import ProfilePage from "./ProfilePage";
 
-// Simple static page for demonstration
+
 const AllComplaintsPage = () => (
   <div className="bg-white p-6 rounded-xl shadow-lg">
     <h1 className="text-2xl font-bold text-gray-800">All Complaints</h1>
@@ -18,7 +18,7 @@ const AllComplaintsPage = () => (
   </div>
 );
 
-// Analytics Page
+
 const AnalyticsPage = () => (
   <div className="bg-white p-6 rounded-xl shadow-lg">
     <h1 className="text-2xl font-bold text-gray-800">Committee Analytics</h1>
@@ -110,7 +110,7 @@ const AnalyticsPage = () => (
   </div>
 );
 
-// General Complaints Feature
+
 const generalComplaintsData = [
   {
     id: 1,

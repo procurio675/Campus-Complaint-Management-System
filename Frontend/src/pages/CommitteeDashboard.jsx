@@ -126,7 +126,11 @@ export default function CommitteeDashboard() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    navigate("/login");
+    // Clear stored auth data like the student dashboard does
+    localStorage.removeItem("ccms_token");
+    localStorage.removeItem("ccms_user");
+    // Use replace to prevent navigating back into a protected route
+    navigate("/login", { replace: true });
   };
 
   useEffect(() => {

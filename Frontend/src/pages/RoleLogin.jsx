@@ -145,6 +145,7 @@ const RoleLogin = () => {
           <div className="text-center">
             <button
               type="button"
+               onClick={() => navigate("/forgot-password")}
               className="text-blue-600 hover:underline text-sm font-medium"
             >
               Forgot password?

@@ -7,6 +7,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import RoleLogin from "./pages/RoleLogin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import StudentDashboard from "./pages/StudentDashboard";
 import CommitteeDashboard from "./pages/CommitteeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -26,6 +28,8 @@ function App() {
       {/* Authentication Routes (these are full-page components) */}
       <Route path="/login" element={<Login />} />
       <Route path="/role-login" element={<RoleLogin />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Dashboard Routes (these are full-page LAYOUT components) */}
       

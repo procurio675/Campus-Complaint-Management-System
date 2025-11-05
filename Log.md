@@ -39,10 +39,12 @@ Applied elicitation techniques like surveys for students and interviews to gathe
 - Implement Sprint 1 Backend (User Authentication & Setup)
 (contributers : Abhishek ,Tirth)
 ---
-### Date:29-09-25
+### Date:29-10-25
 - updated and redesigned login page
 (contributers: krishP )
 - created dummy complaints for each committee 
 (contributers: Sanya)
 ---
-### Date:30-09-25
+### Date:3-10-25
+- restructured complaints for each committee with priority, Personal/General option and Anyounimous option
+(contributers: Sanya )

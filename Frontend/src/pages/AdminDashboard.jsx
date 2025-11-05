@@ -5,7 +5,6 @@ import { FiLogOut } from "react-icons/fi";
 
 import AdminSidebar from "../components/AdminSidebar";
 import DashboardHome from "./DashboardHome";
-// import CommitteeDashboard from "./CommitteeDashboard"; // REMOVED
 import ProfilePage from "./ProfilePage";
 
 // Simple static page for demonstration
@@ -55,7 +54,7 @@ const AnalyticsPage = () => (
     {/* Department Breakdown */}
     <div className="mt-10">
       <h2 className="font-semibold text-lg text-gray-800 mb-3">
-        Committee-wise Breakdown
+        Committee-wise Analytics
       </h2>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left">
@@ -70,35 +69,35 @@ const AnalyticsPage = () => (
           </thead>
           <tbody>
             <tr>
-              <td className="p-3 border">🎓 Academic Committee</td>
+              <td className="p-3 border">Academic Committee</td>
               <td className="p-3 border">312</td>
               <td className="p-3 border">287</td>
               <td className="p-3 border">25</td>
               <td className="p-3 border">92%</td>
             </tr>
             <tr>
-              <td className="p-3 border">🏠 Hostel Management</td>
+              <td className="p-3 border">Hostel Management</td>
               <td className="p-3 border">205</td>
               <td className="p-3 border">164</td>
               <td className="p-3 border">41</td>
               <td className="p-3 border">80%</td>
             </tr>
             <tr>
-              <td className="p-3 border">☕ Cafeteria</td>
+              <td className="p-3 border">Cafeteria</td>
               <td className="p-3 border">178</td>
               <td className="p-3 border">132</td>
               <td className="p-3 border">46</td>
               <td className="p-3 border">74%</td>
             </tr>
             <tr>
-              <td className="p-3 border">🏅 Sports Committee</td>
+              <td className="p-3 border">Sports Committee</td>
               <td className="p-3 border">123</td>
               <td className="p-3 border">108</td>
               <td className="p-3 border">15</td>
               <td className="p-3 border">88%</td>
             </tr>
             <tr>
-              <td className="p-3 border">🚫 Anti-Ragging</td>
+              <td className="p-3 border">Anti-Ragging</td>
               <td className="p-3 border">56</td>
               <td className="p-3 border">56</td>
               <td className="p-3 border">0</td>
@@ -111,8 +110,7 @@ const AnalyticsPage = () => (
   </div>
 );
 
-// *** General Complaints Feature ***
-
+// General Complaints Feature
 const generalComplaintsData = [
   {
     id: 1,
@@ -181,18 +179,12 @@ const generalComplaintsData = [
 
 const PriorityBadge = ({ priority }) => {
   let colors = "bg-gray-100 text-gray-800";
-  if (priority === "High") {
-    colors = "bg-red-100 text-red-800";
-  } else if (priority === "Medium") {
-    colors = "bg-yellow-100 text-yellow-800";
-  } else if (priority === "Low") {
-    colors = "bg-green-100 text-green-800";
-  }
+  if (priority === "High") colors = "bg-red-100 text-red-800";
+  else if (priority === "Medium") colors = "bg-yellow-100 text-yellow-800";
+  else if (priority === "Low") colors = "bg-green-100 text-green-800";
 
   return (
-    <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${colors}`}
-    >
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors}`}>
       {priority} Priority
     </span>
   );
@@ -229,12 +221,9 @@ const ComplaintCard = ({ complaint }) => (
 
 const GeneralComplaintsPage = () => (
   <div className="space-y-6">
-    <h1 className="text-2xl font-bold text-gray-800">
-      Other / General Complaints
-    </h1>
+    <h1 className="text-2xl font-bold text-gray-800">Other / General Complaints</h1>
     <p className="text-gray-600">
-      A dedicated queue for general campus issues that fall outside specific
-      committee responsibilities.
+      A dedicated queue for general campus issues that fall outside specific committee responsibilities.
     </p>
 
     <div className="space-y-5">
@@ -244,7 +233,6 @@ const GeneralComplaintsPage = () => (
     </div>
   </div>
 );
-// *** END: General Complaints Feature ***
 
 export default function AdminDashboard() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -276,7 +264,7 @@ export default function AdminDashboard() {
         {/* Header */}
         <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b">
           <h1 className="text-lg font-semibold text-gray-800">
-            Campus Complaint Management System — Admin Panel
+            Campus Complaint Management System
           </h1>
 
           <div className="flex items-center gap-6">
@@ -331,11 +319,7 @@ export default function AdminDashboard() {
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="all-complaints" element={<AllComplaintsPage />} />
-            <Route
-              path="general-complaints"
-              element={<GeneralComplaintsPage />}
-            />
-            {/* <Route path="committee-dashboard/*" element={<CommitteeDashboard />} /> REMOVED */}
+            <Route path="general-complaints" element={<GeneralComplaintsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/admin-dashboard" replace />} />

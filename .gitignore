@@ -1,0 +1,52 @@
+# ==========================
+# 🌍 Global Node Setup
+# ==========================
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+
+# ==========================
+# 🖥️ Frontend (Vite)
+# ==========================
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.vite/
+Frontend/.env
+Frontend/.env.* !Frontend/.env.example
+
+# ==========================
+# ⚙️ Backend
+# ==========================
+backend/node_modules/
+backend/.env
+backend/.env.* !backend/.env.example
+
+# ==========================
+# 🧪 E2E Tests
+# ==========================
+e2e/node_modules/
+e2e/test-results/
+e2e/reports/
+e2e/playwright-report/
+e2e/traces/
+e2e/videos/
+e2e/screenshots/
+e2e/.env
+e2e/.env.* !e2e/.env.example
+
+# ==========================
+# 🧰 Misc / IDE / OS
+# ==========================
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.swp
+
+# ==========================
+# 📦 Logs & Cache
+# ==========================
+logs/
+*.log
+.cache/

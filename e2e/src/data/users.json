@@ -1,0 +1,14 @@
+{
+  "student": {
+    "email": "202301075@dau.ac.in",
+    "password": "tirth123"
+  },
+  "admin": {
+    "email": "admin@dau.ac.in",
+    "password": "admin123"
+  },
+  "committee": {
+    "email": "canteen@dau.ac.in",
+    "password": "canteen123"
+  }
+}

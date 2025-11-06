@@ -1,5 +1,23 @@
 {
-  "dependencies": {
-    "react-icons": "^5.5.0"
-  }
+  "name": "campus-complaint-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack monorepo for Campus Complaint Management System (Frontend + Backend + E2E Tests)",
+  "workspaces": [
+    "Frontend",
+    "backend",
+    "e2e"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace Frontend & npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace Frontend",
+    "dev:backend": "npm run dev --workspace backend",
+    "test:e2e": "npm run test --workspace e2e",
+    "install:all": "npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "",
+  "license": "ISC"
 }

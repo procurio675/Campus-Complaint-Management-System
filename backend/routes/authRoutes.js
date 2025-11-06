@@ -6,6 +6,7 @@ const router = express.Router();
 
 // PUBLIC ROUTE
 router.post('/login', loginUser);
+router.put('/change-password', protect, changePassword);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 

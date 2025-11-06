@@ -12,28 +12,29 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name:  Check out repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name:  Set up Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'  # Simplified cache built into setup-node
+          cache: 'npm'
 
-      - name:  Install all dependencies (Frontend, Backend, E2E)
+      - name: Install all dependencies (Frontend, Backend, E2E)
         run: npm install
 
-      - name:  Install Playwright browsers & dependencies
-        run: npx playwright install --with-deps --cwd e2e
+      - name: Install Playwright browsers and dependencies
+        working-directory: e2e
+        run: npx playwright install --with-deps
 
-      - name:  Run Playwright tests
+      - name: Run Playwright E2E Tests
         env:
           CI: true
         run: npx playwright test --config=e2e/playwright.config.js
 
-      - name:  Upload HTML test report
-        if: always() # Always upload even if tests fail
+      - name: Upload HTML test report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report

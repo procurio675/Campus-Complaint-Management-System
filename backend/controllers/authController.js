@@ -51,6 +51,44 @@ const loginUser = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // 1. ADDED: Strong password validation using Regex
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ 
+        message: 'Password is not strong enough. It must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.' 
+      });
+    }
+
+    // req.user is attached by the 'protect' middleware
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Check if the current password is correct
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect current password.' });
+    }
+
+    // Hash the new password and save it
+    user.password = bcrypt.hashSync(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully.' });
+
+  } catch (error) {
+    console.error('Change Password Error:', error);
+    res.status(500).json({ message: 'An unexpected server error occurred.' });
+  }
+};
+
 const getUserProfile = async (req, res) => {
   res.status(200).json(req.user);
 };

@@ -18,18 +18,18 @@ const protect = async (req, res, next) => {
       // Find the user from the database using the ID that was in the token
       req.user = await User.findById(decoded.id).select('-password');
 
-      next();
+      return next();
       
     } catch (error) {
       // errors if the token is expired or invalid
       console.error(error);
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
 
   // error token not found
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 

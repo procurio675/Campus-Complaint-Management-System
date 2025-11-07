@@ -55,30 +55,48 @@ const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    // 1. ADDED: Strong password validation using Regex
+    // Validate required fields FIRST
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        message: 'Please provide both current password and new password.' 
+      });
+    }
+
+    // Strong password validation using Regex (only validate NEW password)
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
-    
+
+     
     if (!passwordRegex.test(newPassword)) {
       return res.status(400).json({ 
         message: 'Password is not strong enough. It must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.' 
       });
     }
 
+    
     // req.user is attached by the 'protect' middleware
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    // Check if the current password is correct
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    // Check if the current password is correct using the model's matchPassword method
+    const isMatch = await user.matchPassword(currentPassword);
     if (!isMatch) {
       return res.status(401).json({ message: 'Incorrect current password.' });
     }
 
-    // Hash the new password and save it
-    user.password = bcrypt.hashSync(newPassword, 10);
+
+    // Check if new password is same as current password
+    const isSamePassword = await user.matchPassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({ 
+        message: 'New password must be different from your current password.' 
+      });
+    }
+
+    // Set new password - the pre-save hook in userModel will hash it automatically
+    user.password = newPassword;
     await user.save();
 
     res.status(200).json({ message: 'Password updated successfully.' });

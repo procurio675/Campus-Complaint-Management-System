@@ -31,11 +31,12 @@ jobs:
       - name: Run Playwright E2E Tests
         env:
           CI: true
-          MONGO_URI: ${{ secrets.MONGO_URI }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          # Wrapped in single quotes to prevent YAML or shell from breaking special characters
+          MONGO_URI: '${{ secrets.MONGO_URI }}'
+          JWT_SECRET: '${{ secrets.JWT_SECRET }}'
+          EMAIL_USER: '${{ secrets.EMAIL_USER }}'
+          EMAIL_PASS: '${{ secrets.EMAIL_PASS }}'
+          GOOGLE_API_KEY: '${{ secrets.GOOGLE_API_KEY }}'
         run: npx playwright test --config=e2e/playwright.config.js
 
       - name: Upload HTML test report

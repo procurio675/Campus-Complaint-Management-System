@@ -1,0 +1,9 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# IDE and system files
+__pycache__/
+.DS_Store
+*.log

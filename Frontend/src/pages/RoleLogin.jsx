@@ -55,15 +55,17 @@ const RoleLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // State for password visibility
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Guard against rapid double submissions before state updates propagate
+    if (isLoading) return;
     setError("");
-    setLoading(true);
+    setIsLoading(true);
 
     const emailRegex =
       /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -120,7 +122,7 @@ const RoleLogin = () => {
         err?.response?.data?.message || "Login failed. Please try again.";
       setError(msg);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -188,7 +190,7 @@ const RoleLogin = () => {
               className="absolute inset-y-0 right-0 top-7 flex items-center px-3" // Positioned icon
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
+              {showPassword ? <EyeIcon /> : <EyeSlashIcon />}
             </button>
           </div>
 
@@ -198,10 +200,36 @@ const RoleLogin = () => {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
-            disabled={loading} // Fix: This already prevents multiple clicks
+            className={`w-full bg-blue-600 text-white font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2 ${
+              isLoading
+                ? 'opacity-70 cursor-not-allowed'
+                : 'hover:bg-blue-700'
+            }`}
+            disabled={isLoading}
           >
-            {loading ? "Logging in..." : "Login"}
+            {isLoading && (
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+            )}
+            {isLoading ? 'Logging in…' : 'Login'}
           </button>
 
           <div className="text-center">

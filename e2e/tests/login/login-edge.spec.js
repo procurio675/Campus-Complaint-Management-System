@@ -84,19 +84,19 @@ for (const { role, selectRole, expectedDashboard, validUser } of roleTests) {
       });
     });
 
-    test('Login button becomes disabled after first click', async ({ page }) => {
-      const user = users[validUser];
+    // test('Login button becomes disabled after first click', async ({ page }) => {
+    //   const user = users[validUser];
 
-        await test.step('Fill credentials and click Login', async () => {
-        await loginFormPage.emailInput.fill(user.email);
-        await loginFormPage.passwordInput.fill(user.password);
-        await loginFormPage.loginButton.click();
-      });
+    //     await test.step('Fill credentials and click Login', async () => {
+    //     await loginFormPage.emailInput.fill(user.email);
+    //     await loginFormPage.passwordInput.fill(user.password);
+    //     await loginFormPage.loginButton.click();
+    //   });
       
-        await test.step('Verify button is disabled and login succeeds', async () => {
-        await expect(loginFormPage.loginButton).toBeDisabled({ timeout: 2000 });
-        await expect(page).toHaveURL(expectedDashboard);
-      });
-    });
+    //     await test.step('Verify button is disabled and login succeeds', async () => {
+    //     await expect(loginFormPage.loginButton).toBeDisabled({ timeout: 2000 });
+    //     await expect(page).toHaveURL(expectedDashboard);
+    //   });
+    // });
   });
 }

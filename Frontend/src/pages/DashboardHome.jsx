@@ -102,7 +102,7 @@ export default function DashboardHome() {
   return (
     <div className="flex flex-col gap-8">
     
-      <h1 className="text-3xl font-bold text-gray-800">Welcome, Name 👋</h1>
+      <h1 className="text-3xl font-bold text-gray-800"> Hii, Name 👋</h1>
       <p className="text-gray-600 -mt-6">
         Here's an overview of your recent complaint activity.
       </p>

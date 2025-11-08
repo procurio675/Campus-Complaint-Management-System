@@ -84,16 +84,7 @@ export default function ProfilePage() {
             label="Email Address"
             value="name@example.edu"
           />
-          <InfoItem
-            icon={<FaIdBadge />}
-            label="Student ID"
-            value="21BCE123"
-          />
-          <InfoItem
-            icon={<FaBuilding />}
-            label="Department"
-            value="Computer Engineering"
-          />
+          
           <InfoItem
             icon={<FaUser />}
             label="Role"

@@ -162,10 +162,7 @@ export default function AddComplaintPage() {
   };
 
   return (
-    <div className="p-6 md:p-10">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">
-        File a New Complaint
-      </h1>
+    <div className="p-6 md:p-1">
       <p className="text-gray-600 mb-8">
         Please provide accurate and detailed information. The system will
         automatically route your complaint to the relevant committee.

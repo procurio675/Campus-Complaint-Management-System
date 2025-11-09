@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaPaperPlane, FaTimes } from "react-icons/fa";
+import axios from "axios";
 
 export default function AddComplaintPage() {
   const [preview, setPreview] = useState([]);
@@ -141,7 +142,7 @@ export default function AddComplaintPage() {
     return { valid: errors.length === 0, errors };
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     const { valid, errors: validationErrors } = validateComplaintText(
       form.title,
@@ -151,12 +152,62 @@ export default function AddComplaintPage() {
       setErrors(validationErrors);
       return;
     }
+    
     setErrors([]);
-    alert(
-      "Complaint submitted successfully! ID: CC" +
-        Math.floor(Math.random() * 90000 + 10000)
-    );
-    navigate("/student-dashboard/my-complaints");
+    setSubmitting(true);
+
+    try {
+      // Get token from localStorage
+      const token = localStorage.getItem("ccms_token");
+      
+      if (!token) {
+        setErrors(["You are not logged in. Please login again."]);
+        setSubmitting(false);
+        return;
+      }
+
+      // Create FormData for file uploads
+      const formData = new FormData();
+      formData.append("title", form.title.trim());
+      formData.append("description", form.desc.trim());
+      formData.append("location", form.location?.trim() || "");
+      formData.append("type", form.type);
+
+      // Append files if any
+      if (files.length > 0) {
+        files.forEach((file) => {
+          formData.append("attachments", file);
+        });
+      }
+
+      // Call API
+      const { data } = await axios.post(
+        "http://localhost:5000/api/complaints",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // Show success message with committee information
+      const successMessage = `Complaint submitted successfully!\n\nComplaint ID: CC${data.complaint._id.slice(-6)}\nRouted to: ${data.routing.committee}\nPriority: ${data.routing.priority}`;
+      
+      alert(successMessage);
+      
+      // Navigate to my complaints page
+      navigate("/student-dashboard/my-complaints");
+    } catch (error) {
+      console.error("Submit Complaint Error:", error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        "Failed to submit complaint. Please try again.";
+      setErrors([errorMessage]);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -381,6 +432,20 @@ export default function AddComplaintPage() {
               </label>
             </div>
           </div>
+
+          {/* Error Display */}
+          {errors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-red-800 mb-2">
+                Please fix the following errors:
+              </p>
+              <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                {errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Submit */}
           <div className="pt-6 text-right">

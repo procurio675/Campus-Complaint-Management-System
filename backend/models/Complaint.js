@@ -16,21 +16,21 @@ const ComplaintSchema = new mongoose.Schema({
         required: true,
     },
     category: {
-        // Auto-routed by Gemini
+        // Auto-routed by Gemini AI
         type: String,
-        enum: ['Hostel Management Committee', 'Cafeteria Management Committee', 'Academic Committee', 'Gender Cell', 'Anti-Ragging Committee', 'Sports Committee', 'Administration department'],
+        enum: ['Hostel Management', 'Cafeteria', 'Tech-Support', 'Sports', 'Academic', 'Internal Complaints', 'Annual Fest', 'Cultural', 'Student Placement'],
         required: true,
     },
     priority: {
-        // Auto-routed by Gemini
+        // Auto-routed by Gemini AI
         type: String,
-        enum: ['low', 'medium', 'high'],
-        default: 'medium',
+        enum: ['High', 'Medium', 'Low'],
+        default: 'Medium',
     },
-    room: {
+    location: {
         type: String,
-        required: true,
         trim: true,
+        default: '',
     },
     status: {
         type: String,
@@ -65,5 +65,5 @@ const ComplaintSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Complaint', ComplaintSchema);
+export default mongoose.model('Complaint', ComplaintSchema);
 

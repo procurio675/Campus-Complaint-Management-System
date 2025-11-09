@@ -21,6 +21,8 @@ Frontend/.env.* !Frontend/.env.example
 backend/node_modules/
 backend/.env
 backend/.env.* !backend/.env.example
+backend/uploads/
+backend/AI-LLM/out/
 
 # ==========================
 # 🧪 E2E Tests

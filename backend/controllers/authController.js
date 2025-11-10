@@ -10,25 +10,29 @@ const loginUser = async (req, res) => {
     const { email, password, intendedRole } = req.body;
 
     if (!email || !password || !intendedRole) {
-      return res.status(400).json({ message: 'Please provide email, password, and role.' });
-    }
+      return res.status(400).json({ message: 'Please provide email, password, and role.' });
+    }
+
+    // Normalize email and role to lowercase for consistent comparison
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedIntendedRole = intendedRole.toLowerCase().trim();
 
     // find the user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: normalizedEmail });
 
     // check if the user exists.
     if (!user) {
       // Use 401 for authentication errors
-      return res.status(401).json({ message: 'Account does not exist' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     //User exists, then check their password.
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Incorrect password' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
     // Password is correct. Now check if they are on the right portal.
-    if (user.role !== intendedRole) {
+    if (user.role.toLowerCase() !== normalizedIntendedRole) {
       return res.status(403).json({ // 403 Forbidden
         message: `This is a ${user.role} account. Please use the ${user.role} login portal.`,
       });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import API_BASE_URL from "../config/api.js";
 
 const StatusBadge = ({ status }) => {
   const statusStyles = {
@@ -111,13 +112,13 @@ export default function DashboardHome() {
 
       // Fetch stats and recent complaints in parallel
       const [statsResponse, complaintsResponse] = await Promise.all([
-        axios.get("http://localhost:5000/api/complaints/my-complaints/stats", {
+        axios.get(`${API_BASE_URL}/complaints/my-complaints/stats`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }),
-        axios.get("http://localhost:5000/api/complaints/my-complaints", {
+        axios.get(`${API_BASE_URL}/complaints/my-complaints`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

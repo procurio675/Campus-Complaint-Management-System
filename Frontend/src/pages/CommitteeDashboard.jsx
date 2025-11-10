@@ -16,6 +16,7 @@ import {
 } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
+import API_BASE_URL from "../config/api.js";
 
 // Import shared pages (like Profile)
 import ProfilePage from "./ProfilePage";
@@ -108,7 +109,7 @@ const AssignedComplaintsPage = () => {
       }
 
       const { data } = await axios.get(
-        "http://localhost:5000/api/complaints/assigned",
+        `${API_BASE_URL}/complaints/assigned`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -389,13 +390,13 @@ const CommitteeDashboardHome = () => {
 
       // Fetch stats and recent complaints in parallel
       const [statsResponse, complaintsResponse] = await Promise.all([
-        axios.get("http://localhost:5000/api/complaints/assigned/stats", {
+        axios.get(`${API_BASE_URL}/complaints/assigned/stats`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }),
-        axios.get("http://localhost:5000/api/complaints/assigned", {
+        axios.get(`${API_BASE_URL}/complaints/assigned`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

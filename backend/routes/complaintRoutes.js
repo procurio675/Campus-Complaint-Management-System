@@ -9,6 +9,7 @@ import {
   getAssignedComplaints,
   getAssignedComplaintsStats,
   getComplaint,
+  upvoteComplaint,
 } from '../controllers/complaintController.js';
 
 const router = express.Router();
@@ -44,6 +45,7 @@ router.get('/my-complaints', protect, getMyComplaints);
 router.get('/public', protect, getPublicComplaints); // Public complaints (still requires auth)
 router.get('/assigned/stats', protect, getAssignedComplaintsStats); // Stats for committee dashboard
 router.get('/assigned', protect, getAssignedComplaints); // Assigned complaints for committee
+router.post('/:id/upvote', protect, upvoteComplaint); // Upvote a public complaint
 router.get('/:id', protect, getComplaint);
 
 export default router;

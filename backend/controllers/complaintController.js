@@ -148,16 +148,56 @@ export const getMyComplaints = async (req, res) => {
 };
 
 /**
+ * Helper function to update priority based on upvote count
+ */
+const updatePriorityBasedOnUpvotes = async (complaint) => {
+  const upvoteCount = complaint.upvotes?.length || 0;
+  let newPriority = complaint.priority;
+
+  // Priority thresholds based on upvotes
+  // High: 10+ upvotes
+  // Medium: 5-9 upvotes
+  // Low: 0-4 upvotes
+  if (upvoteCount >= 10) {
+    newPriority = 'High';
+  } else if (upvoteCount >= 5) {
+    newPriority = 'Medium';
+  } else {
+    newPriority = 'Low';
+  }
+
+  // Only update if priority changed
+  if (newPriority !== complaint.priority) {
+    complaint.priority = newPriority;
+    await complaint.save();
+  }
+
+  return newPriority;
+};
+
+/**
  * Get all public complaints (visible to everyone)
  * GET /api/complaints/public
  */
 export const getPublicComplaints = async (req, res) => {
   try {
+    const userId = req.user?._id; // Get current user ID if authenticated
+    
     // Get all complaints where type is 'general' (public)
+    // We'll sort by upvote count after fetching
     const complaints = await Complaint.find({ type: 'general' })
-      .sort({ createdAt: -1 })
       .populate('userId', 'name email')
       .select('-__v -description'); // Don't expose full description in list view
+    
+    // Sort by upvote count (descending), then by creation date
+    complaints.sort((a, b) => {
+      const aUpvotes = a.upvotes?.length || 0;
+      const bUpvotes = b.upvotes?.length || 0;
+      if (bUpvotes !== aUpvotes) {
+        return bUpvotes - aUpvotes; // Most upvoted first
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt); // Newest first if same upvotes
+    });
 
     // Format complaints to hide user identity if anonymous
     const formattedComplaints = complaints.map((complaint) => {
@@ -170,6 +210,12 @@ export const getPublicComplaints = async (req, res) => {
           email: null,
         };
       }
+      
+      // Add upvote count and whether current user has upvoted
+      complaintObj.upvoteCount = complaint.upvotes?.length || 0;
+      complaintObj.hasUpvoted = userId 
+        ? complaint.upvotes?.some((id) => id.toString() === userId.toString()) 
+        : false;
       
       return complaintObj;
     });
@@ -311,6 +357,71 @@ export const getAssignedComplaints = async (req, res) => {
     console.error('Get Assigned Complaints Error:', error);
     res.status(500).json({
       message: error.message || 'Failed to fetch assigned complaints',
+    });
+  }
+};
+
+/**
+ * Upvote a public complaint
+ * POST /api/complaints/:id/upvote
+ */
+export const upvoteComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    // Find the complaint
+    const complaint = await Complaint.findById(id);
+
+    if (!complaint) {
+      return res.status(404).json({
+        message: 'Complaint not found',
+      });
+    }
+
+    // Only allow upvoting public complaints
+    if (complaint.type !== 'general') {
+      return res.status(403).json({
+        message: 'Only public complaints can be upvoted',
+      });
+    }
+
+    // Check if user has already upvoted (compare as strings)
+    const hasUpvoted = complaint.upvotes?.some(
+      (upvoteId) => upvoteId.toString() === userId.toString()
+    );
+
+    if (hasUpvoted) {
+      // Remove upvote (toggle off)
+      complaint.upvotes = complaint.upvotes.filter(
+        (upvoteId) => upvoteId.toString() !== userId.toString()
+      );
+    } else {
+      // Add upvote
+      if (!complaint.upvotes) {
+        complaint.upvotes = [];
+      }
+      // Check if user ID is not already in the array
+      if (!complaint.upvotes.some((id) => id.toString() === userId.toString())) {
+        complaint.upvotes.push(userId);
+      }
+    }
+
+    await complaint.save();
+
+    // Update priority based on upvote count
+    const newPriority = await updatePriorityBasedOnUpvotes(complaint);
+
+    res.status(200).json({
+      message: hasUpvoted ? 'Upvote removed' : 'Complaint upvoted successfully',
+      upvoteCount: complaint.upvotes.length,
+      hasUpvoted: !hasUpvoted,
+      priority: newPriority,
+    });
+  } catch (error) {
+    console.error('Upvote Complaint Error:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to upvote complaint',
     });
   }
 };

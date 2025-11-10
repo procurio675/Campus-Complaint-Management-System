@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import API_BASE_URL from "../config/api.js";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -47,7 +48,7 @@ const ResetPassword = () => {
 
     try {
       const { data } = await axios.post(
-        `http://localhost:5000/api/auth/reset-password`,
+        `${API_BASE_URL}/auth/reset-password`,
         { email, otp, newPassword },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -75,7 +76,7 @@ const ResetPassword = () => {
     setLoading(true);
     try {
       await axios.post(
-        `http://localhost:5000/api/auth/forgot-password`,
+        `${API_BASE_URL}/auth/forgot-password`,
         { email },
         { headers: { "Content-Type": "application/json" } }
       );

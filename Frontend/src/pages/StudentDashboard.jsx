@@ -1,9 +1,10 @@
 import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
-import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye } from "react-icons/fa";
+import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye, FaThumbsUp } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
+import API_BASE_URL from "../config/api.js";
 
 import Sidebar from "../components/Sidebar";
 import DashboardHome from "./DashboardHome";
@@ -33,7 +34,7 @@ const MyComplaintsPage = () => {
       }
 
       const { data } = await axios.get(
-        "http://localhost:5000/api/complaints/my-complaints",
+        `${API_BASE_URL}/complaints/my-complaints`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -230,6 +231,7 @@ const AllComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [upvoting, setUpvoting] = useState({}); // Track which complaint is being upvoted
 
   useEffect(() => {
     fetchPublicComplaints();
@@ -248,7 +250,7 @@ const AllComplaintsPage = () => {
       }
 
       const { data } = await axios.get(
-        "http://localhost:5000/api/complaints/public",
+        `${API_BASE_URL}/complaints/public`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -266,6 +268,63 @@ const AllComplaintsPage = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpvote = async (complaintId) => {
+    try {
+      setUpvoting({ ...upvoting, [complaintId]: true });
+      
+      const token = localStorage.getItem("ccms_token");
+      if (!token) {
+        setError("You are not logged in. Please login again.");
+        return;
+      }
+
+      const { data } = await axios.post(
+        `${API_BASE_URL}/complaints/${complaintId}/upvote`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Update the complaint in the list
+      setComplaints((prevComplaints) =>
+        prevComplaints.map((complaint) => {
+          if (complaint._id === complaintId) {
+            return {
+              ...complaint,
+              upvoteCount: data.upvoteCount,
+              hasUpvoted: data.hasUpvoted,
+              priority: data.priority, // Update priority if it changed
+            };
+          }
+          return complaint;
+        })
+      );
+
+      // Re-sort complaints by upvote count
+      setComplaints((prevComplaints) => {
+        const sorted = [...prevComplaints].sort((a, b) => {
+          const aUpvotes = a.upvoteCount || 0;
+          const bUpvotes = b.upvoteCount || 0;
+          if (bUpvotes !== aUpvotes) {
+            return bUpvotes - aUpvotes;
+          }
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+        return sorted;
+      });
+    } catch (err) {
+      console.error("Upvote Error:", err);
+      const errorMsg = err?.response?.data?.message || "Failed to upvote complaint. Please try again.";
+      alert(errorMsg);
+    } finally {
+      setUpvoting((prev) => ({ ...prev, [complaintId]: false }));
     }
   };
 
@@ -442,16 +501,32 @@ const AllComplaintsPage = () => {
                     {formatDate(complaint.createdAt)}
                   </td>
                   <td className="p-3 text-gray-600 text-sm text-center">
-                    {complaint.upvotes?.length || 0}
+                    <div className="flex items-center justify-center gap-2">
+                      <span>{complaint.upvoteCount || complaint.upvotes?.length || 0}</span>
+                      <button
+                        onClick={() => handleUpvote(complaint._id)}
+                        disabled={upvoting[complaint._id]}
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-colors ${
+                          complaint.hasUpvoted
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        } ${upvoting[complaint._id] ? "opacity-50 cursor-not-allowed" : ""}`}
+                        title={complaint.hasUpvoted ? "Remove upvote" : "Upvote this complaint"}
+                      >
+                        <FaThumbsUp size={14} />
+                      </button>
+                    </div>
                   </td>
                   <td className="p-3">
-                    <Link
-                      to={`/student-dashboard/complaint/${complaint._id}`}
-                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-sm"
-                    >
-                      <FaEye />
-                      View
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/student-dashboard/complaint/${complaint._id}`}
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-sm"
+                      >
+                        <FaEye />
+                        View
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

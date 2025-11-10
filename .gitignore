@@ -52,3 +52,5 @@ Thumbs.db
 logs/
 *.log
 .cache/
+
+.early.coverage

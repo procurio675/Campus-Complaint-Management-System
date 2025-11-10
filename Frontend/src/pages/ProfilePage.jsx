@@ -1,5 +1,6 @@
 import React, { useState } from "react"; 
 import axios from "axios";
+import API_BASE_URL from "../config/api.js";
 import {
   FaUser,
   FaEnvelope,
@@ -82,7 +83,7 @@ export default function ProfilePage() {
 
       // Call backend API
       const { data } = await axios.put(
-        "http://localhost:5000/api/auth/change-password",
+        `${API_BASE_URL}/auth/change-password`,
         {
           currentPassword: passwords.current,
           newPassword: passwords.new,

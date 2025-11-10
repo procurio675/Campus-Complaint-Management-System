@@ -2,6 +2,7 @@ import React from "react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_BASE_URL from "../config/api.js";
 
 // SVG Icons for Show/Hide Password
 
@@ -73,7 +74,7 @@ const RoleLogin = () => {
     // 1. Email Format Checker
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address.");
-      setLoading(false);
+      setIsLoading(false);
       return;
     }
 
@@ -81,7 +82,7 @@ const RoleLogin = () => {
       // Call backend login endpoint
       // We send the 'role' to the backend as 'intendedRole'
       const { data } = await axios.post(
-        `http://localhost:5000/api/auth/login`,
+        `${API_BASE_URL}/auth/login`,
         { email, password, intendedRole: (role || "").toLowerCase() },
         { headers: { "Content-Type": "application/json" } }
       );

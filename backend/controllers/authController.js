@@ -23,7 +23,7 @@ const loginUser = async (req, res) => {
     // check if the user exists.
     if (!user) {
       // User not found — tests expect this exact message to be displayed by the UI
-      return res.status(404).json({ message: 'Account does not exist' });
+      return res.status(401).json({ message: 'Account does not exist' });
     }
 
     // User exists, then check their password.

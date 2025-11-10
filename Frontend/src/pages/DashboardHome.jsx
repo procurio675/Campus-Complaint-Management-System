@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const stats = [
@@ -99,10 +99,37 @@ const getLabelColor = (color) => {
 };
 
 export default function DashboardHome() {
+
+    const [userName, setUserName] = useState("User");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/profile", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          setUserName(data.name);
+        } else {
+          console.error("Error fetching profile:", data.message);
+        }
+      } catch (err) {
+        console.error("Network error:", err);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
   return (
     <div className="flex flex-col gap-8">
     
-      <h1 className="text-3xl font-bold text-gray-800"> Hii, Name 👋</h1>
+      <h1 className="text-3xl font-bold text-gray-800"> Hii, {userName}!! </h1>
       <p className="text-gray-600 -mt-6">
         Here's an overview of your recent complaint activity.
       </p>

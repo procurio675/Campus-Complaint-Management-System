@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const ComplaintSchema = new mongoose.Schema({
     userId: {

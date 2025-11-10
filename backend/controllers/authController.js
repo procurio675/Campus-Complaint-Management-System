@@ -108,26 +108,8 @@ const changePassword = async (req, res) => {
 };
 
 const getUserProfile = async (req, res) => {
-  try {
-    
-    const user = await User.findById(req.user._id).select("name email role committeeType");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.status(200).json({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      committeeType: user.committeeType,
-    });
-  } catch (error) {
-    console.error("Error fetching user profile:", error);
-    res.status(500).json({ message: "Server error" });
-  }
+  res.status(200).json(req.user);
 };
-
 
 // Generate and send OTP for password reset
 const forgotPassword = async (req, res) => {

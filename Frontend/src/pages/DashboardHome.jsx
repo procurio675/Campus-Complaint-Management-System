@@ -1,56 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-
-const stats = [
-  {
-    label: "Total Complaints",
-    value: "6", // (3+2+1)
-    color: "blue",
-  },
-  {
-    label: "Resolved",
-    value: "3",
-    color: "green",
-  },
-  {
-    label: "In Progress",
-    value: "2",
-    color: "yellow",
-  },
-  {
-    label: "Pending",
-    value: "1",
-    color: "red",
-  },
-];
-
-const recentComplaints = [
-  {
-    id: "#124",
-    department: "Maintenance",
-    status: "Resolved",
-    date: "29 Oct 2025",
-  },
-  {
-    id: "#125",
-    department: "IT Department",
-    status: "In Progress",
-    date: "30 Oct 2025",
-  },
-];
-
-const announcements = [
-  "The maintenance department will be closed on Sunday (Nov 3).",
-  "Your complaint #124 has been marked as resolved.",
-  "New system update coming next week with improved tracking.",
-];
+import axios from "axios";
 
 const StatusBadge = ({ status }) => {
-  let colorClass = "";
-  if (status === "Resolved") colorClass = "text-green-600";
-  if (status === "In Progress") colorClass = "text-yellow-600";
-  if (status === "Pending") colorClass = "text-red-600";
-  return <span className={`font-medium ${colorClass}`}>{status}</span>;
+  const statusStyles = {
+    pending: "text-red-600",
+    "in-progress": "text-yellow-600",
+    resolved: "text-green-600",
+    rejected: "text-gray-600",
+  };
+
+  const statusLabels = {
+    pending: "Pending",
+    "in-progress": "In Progress",
+    resolved: "Resolved",
+    rejected: "Rejected",
+  };
+
+  return (
+    <span className={`font-medium ${statusStyles[status] || "text-gray-600"}`}>
+      {statusLabels[status] || status}
+    </span>
+  );
 };
 
 const getBorderColor = (color) => {
@@ -99,32 +70,140 @@ const getLabelColor = (color) => {
 };
 
 export default function DashboardHome() {
-
-    const [userName, setUserName] = useState("User");
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0,
+    rejected: 0,
+  });
+  const [recentComplaints, setRecentComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    // Get user name from localStorage
+    const userData = localStorage.getItem("ccms_user");
+    if (userData) {
       try {
-        const res = await fetch("http://localhost:5000/api/auth/profile", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-          setUserName(data.name);
-        } else {
-          console.error("Error fetching profile:", data.message);
-        }
-      } catch (err) {
-        console.error("Network error:", err);
+        const user = JSON.parse(userData);
+        setUserName(user.name || "User");
+      } catch (e) {
+        setUserName("User");
       }
-    };
-
-    fetchUserProfile();
+    }
+    
+    fetchDashboardData();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const token = localStorage.getItem("ccms_token");
+      if (!token) {
+        setError("You are not logged in. Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch stats and recent complaints in parallel
+      const [statsResponse, complaintsResponse] = await Promise.all([
+        axios.get("http://localhost:5000/api/complaints/my-complaints/stats", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }),
+        axios.get("http://localhost:5000/api/complaints/my-complaints", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }),
+      ]);
+
+      setStats(statsResponse.data);
+      // Get only the 5 most recent complaints
+      setRecentComplaints(complaintsResponse.data.complaints?.slice(0, 5) || []);
+    } catch (err) {
+      console.error("Fetch Dashboard Data Error:", err);
+      setError(
+        err?.response?.data?.message ||
+          "Failed to fetch dashboard data. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const getComplaintId = (id) => {
+    if (!id) return "N/A";
+    return `CC${id.slice(-6).toUpperCase()}`;
+  };
+
+  const statsCards = [
+    {
+      label: "Total Complaints",
+      value: stats.total,
+      color: "blue",
+    },
+    {
+      label: "Resolved",
+      value: stats.resolved,
+      color: "green",
+    },
+    {
+      label: "In Progress",
+      value: stats.inProgress,
+      color: "yellow",
+    },
+    {
+      label: "Pending",
+      value: stats.pending,
+      color: "red",
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <h1 className="text-3xl font-bold text-gray-800">Welcome, {userName} 👋</h1>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading dashboard data...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col gap-8">
+        <h1 className="text-3xl font-bold text-gray-800">Welcome, {userName} 👋</h1>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={fetchDashboardData}
+            className="mt-2 text-sm text-red-600 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -135,7 +214,7 @@ export default function DashboardHome() {
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
+        {statsCards.map((stat) => (
           <div
             key={stat.label}
             className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
@@ -157,50 +236,79 @@ export default function DashboardHome() {
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Recent Complaints
-        </h2>
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="p-3 text-sm font-semibold text-gray-600">
-                Complaint ID
-              </th>
-              <th className="p-3 text-sm font-semibold text-gray-600">
-                Department
-              </th>
-              <th className="p-3 text-sm font-semibold text-gray-600">
-                Status
-              </th>
-              <th className="p-3 text-sm font-semibold text-gray-600">Date</th>
-              <th className="p-3 text-sm font-semibold text-gray-600">
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentComplaints.map((complaint) => (
-              <tr key={complaint.id} className="border-b">
-                <td className="p-3 text-gray-700">{complaint.id}</td>
-                <td className="p-3 text-gray-700">{complaint.department}</td>
-                <td className="p-3">
-                  <StatusBadge status={complaint.status} />
-                </td>
-                <td className="p-3 text-gray-700">{complaint.date}</td>
-                <td className="p-3">
-                  <Link
-                    to={`/complaint/${complaint.id}`}
-                    className="text-blue-600 font-medium hover:underline"
-                  >
-                    View
-                  </Link>
-                </td>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">
+            Recent Complaints
+          </h2>
+          <Link
+            to="/student-dashboard/my-complaints"
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            View All →
+          </Link>
+        </div>
+        {recentComplaints.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">
+            You haven't filed any complaints yet.{" "}
+            <Link
+              to="/student-dashboard/add-complaint"
+              className="text-blue-600 hover:underline"
+            >
+              File your first complaint
+            </Link>
+          </p>
+        ) : (
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Complaint ID
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Title
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Committee
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Status
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">Date</th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Action
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {recentComplaints.map((complaint) => (
+                <tr key={complaint._id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="p-3 text-gray-700 font-mono text-sm">
+                    {getComplaintId(complaint._id)}
+                  </td>
+                  <td className="p-3 text-gray-700 max-w-xs truncate">
+                    {complaint.title}
+                  </td>
+                  <td className="p-3 text-gray-700">{complaint.category}</td>
+                  <td className="p-3">
+                    <StatusBadge status={complaint.status} />
+                  </td>
+                  <td className="p-3 text-gray-700 text-sm">
+                    {formatDate(complaint.createdAt)}
+                  </td>
+                  <td className="p-3">
+                    <Link
+                      to={`/student-dashboard/complaint/${complaint._id}`}
+                      className="text-blue-600 font-medium hover:underline text-sm"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
-      </div>
-    
+    </div>
   );
 }

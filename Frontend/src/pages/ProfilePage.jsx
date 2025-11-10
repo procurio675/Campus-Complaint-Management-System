@@ -1,4 +1,5 @@
 import React, { useState } from "react"; 
+import axios from "axios";
 import {
   FaUser,
   FaEnvelope,
@@ -29,12 +30,13 @@ export default function ProfilePage() {
     type: "",
     text: "",
   });
+  const [loading, setLoading] = useState(false);
 
   const handlePasswordChange = (e) => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setPasswordMessage({ type: "", text: "" });
 
@@ -53,14 +55,66 @@ export default function ProfilePage() {
       return;
     }
 
-    console.log("Password change requested:", passwords);
+    // Password strength validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    if (!passwordRegex.test(passwords.new)) {
+      setPasswordMessage({
+        type: "error",
+        text: "Password must include uppercase, lowercase, number, and special character.",
+      });
+      return;
+    }
 
-    setPasswordMessage({
-      type: "success",
+    try {
+      setLoading(true);
+      
+      // Get token from localStorage
+      const token = localStorage.getItem("ccms_token");
+      
+      if (!token) {
+        setPasswordMessage({
+          type: "error",
+          text: "You are not logged in. Please login again.",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Call backend API
+      const { data } = await axios.put(
+        "http://localhost:5000/api/auth/change-password",
+        {
+          currentPassword: passwords.current,
+          newPassword: passwords.new,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Success
+      setPasswordMessage({
+        type: "success",
       text: "Password changed successfully!",
-    });
-    setPasswords({ current: "", new: "", confirm: "" }); 
-    setTimeout(() => setPasswordMessage({ type: "", text: "" }), 3000);
+      });
+      setPasswords({ current: "", new: "", confirm: "" });
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setPasswordMessage({ type: "", text: "" }), 5000);
+
+    } catch (error) {
+      // Handle errors
+      const errorMessage = error?.response?.data?.message || "Failed to change password. Please try again.";
+      setPasswordMessage({
+        type: "error",
+        text: errorMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -188,9 +242,12 @@ export default function ProfilePage() {
         <div className="mt-6 text-right">
           <button
             type="submit"
-            className="bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition-all"
+            disabled={loading}
+            className={`bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition-all ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
-            Save Password
+            {loading ? "Saving..." : "Save Password"}
           </button>
         </div>
       </form>

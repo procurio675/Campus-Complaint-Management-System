@@ -7,9 +7,12 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import RoleLogin from "./pages/RoleLogin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import StudentDashboard from "./pages/StudentDashboard";
 import CommitteeDashboard from "./pages/CommitteeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   // --- UPDATED ---
@@ -25,6 +28,8 @@ function App() {
       {/* Authentication Routes (these are full-page components) */}
       <Route path="/login" element={<Login />} />
       <Route path="/role-login" element={<RoleLogin />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Dashboard Routes (these are full-page LAYOUT components) */}
       
@@ -34,9 +39,30 @@ function App() {
         will handle its own set of "nested" routes inside it
         (like /student-dashboard/add-complaint or /student-dashboard/profile)
       */}
-      <Route path="/student-dashboard/*" element={<StudentDashboard />} />
-      <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
-      <Route path="/committee-dashboard/*" element={<CommitteeDashboard />} />
+      <Route 
+        path="/student-dashboard/*" 
+        element={
+          <ProtectedRoute allowedRole="student">
+            <StudentDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/admin-dashboard/*" 
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/committee-dashboard/*" 
+        element={
+          <ProtectedRoute allowedRole="committee">
+            <CommitteeDashboard />
+          </ProtectedRoute>
+        } 
+      />
 
 
       {/* 404 - Catch all unmatched routes */}

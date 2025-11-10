@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaPaperPlane, FaTimes } from "react-icons/fa";
 
@@ -176,6 +177,21 @@ export default function AddComplaintPage() {
             </label>
             <input
               name="title"
+              value={form.title}
+              onChange={(e) => {
+                // Restrict typing to max 200 chars
+                if (e.target.value.length <= 200) {
+                  handleChange(e);
+                }
+              }}
+              maxLength={200}
+              placeholder="e.g., Wi-Fi not working in Block B"
+              className={`w-full mt-1 border ${
+                errors.includes("Title must be at least 5 characters long.") ||
+                errors.includes("Title cannot exceed 200 characters.")
+                  ? "border-red-500"
+                  : "border-gray-300"
+              } rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
               value={form.title}
               onChange={(e) => {
                 // Restrict typing to max 200 chars

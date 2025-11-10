@@ -1,0 +1,27 @@
+# ==========================
+# 🧪 E2E Test Artifacts
+# ==========================
+node_modules/
+test-results/
+reports/
+playwright-report/
+traces/
+videos/
+screenshots/
+
+# ==========================
+# 🗝️ Environment Files
+# ==========================
+.env
+.env.* !.env.example
+
+# ==========================
+# 🧰 Misc / OS
+# ==========================
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-error.log*
+*.tmp
+*.bak
+*.swp

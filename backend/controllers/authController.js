@@ -22,14 +22,15 @@ const loginUser = async (req, res) => {
 
     // check if the user exists.
     if (!user) {
-      // Use 401 for authentication errors
-      return res.status(401).json({ message: 'Invalid email or password' });
+      // User not found — tests expect this exact message to be displayed by the UI
+      return res.status(404).json({ message: 'Account does not exist' });
     }
 
-    //User exists, then check their password.
+    // User exists, then check their password.
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      // Wrong password — tests expect this exact message
+      return res.status(401).json({ message: 'Incorrect password' });
     }
     // Password is correct. Now check if they are on the right portal.
     if (user.role.toLowerCase() !== normalizedIntendedRole) {

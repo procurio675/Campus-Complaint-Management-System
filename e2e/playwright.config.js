@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 // Define frontend and backend ports
 const FRONTEND_PORT = 5173; // Vite default
-const BACKEND_PORT = 5000;  // Backend API (Express, etc.)
+const BACKEND_PORT = 3001;  // Backend API (Express, etc.)
 
 export default defineConfig({
   testDir: './tests',

@@ -240,8 +240,11 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // remove jwt token from local storage
+    localStorage.removeItem("ccms_token");
+    localStorage.removeItem("ccms_user");
     localStorage.removeItem("role");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   useEffect(() => {

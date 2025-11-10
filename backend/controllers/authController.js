@@ -10,8 +10,7 @@ const loginUser = async (req, res) => {
     const { email, password, intendedRole } = req.body;
 
     if (!email || !password || !intendedRole) {
-      return res.status(400).json({ message: 'Please provide email, password, and role.' });
-    }
+ return res.status(400).json({ message: 'Please provide email, password, and role.' }); }
 
     // find the user by email
     const user = await User.findOne({ email: email.toLowerCase() });

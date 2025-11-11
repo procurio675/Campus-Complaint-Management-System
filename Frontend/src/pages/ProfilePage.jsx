@@ -22,6 +22,38 @@ const InfoItem = ({ icon, label, value }) => (
 );
 
 export default function ProfilePage() {
+  // load user from localStorage (set at login in RoleLogin.jsx)
+  let storedUser = null;
+  try {
+    storedUser = JSON.parse(localStorage.getItem("ccms_user"));
+  } catch (e) {
+    storedUser = null;
+  }
+
+  const displayName = (storedUser && storedUser.name) || "Name";
+  const displayEmail = (storedUser && storedUser.email) || "name@example.edu";
+  // As requested: student ID is the domain name part of the email
+  const displayStudentID = displayEmail.includes("@") ? displayEmail.split("@")[0] : "failed to load email ID";
+  const displayRole = (storedUser && storedUser.role) || "Student";
+
+  // Derive department from studentID code (4th and 5th index -> slice(4,6)) when department not provided
+  const deptMap = {
+    "01": "B.Tech ICT",
+    "03": "B.Tech MnC",
+    "04": "B.Tech EVD",
+    "11": "M.Tech ICT",
+    "12": "M.Sc IT",
+    "14": "M.Sc AA",
+    "18": "M.Sc DS",
+    "19": "M.Des",
+  };
+
+  const idCode = displayStudentID && displayStudentID.length >= 6 ? displayStudentID.slice(4, 6) : null;
+  const derivedDept = idCode && deptMap[idCode] ? deptMap[idCode] : null;
+  const displayDepartment = (storedUser && storedUser.department) || derivedDept || "Computer Engineering";
+
+  const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : "N";
+
   const [passwords, setPasswords] = useState({
     current: "",
     new: "",
@@ -125,34 +157,32 @@ export default function ProfilePage() {
       <div className="bg-white p-6 rounded-xl shadow-lg">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-2xl">
-            N
+            {avatarLetter}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800">
-              Name
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800">{displayName}</h2>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <InfoItem
             icon={<FaEnvelope />}
             label="Email Address"
-            value="name@example.edu"
+            value={displayEmail}
           />
           <InfoItem
             icon={<FaIdBadge />}
             label="Student ID"
-            value="21BCE123"
+            value={displayStudentID}
           />
           <InfoItem
             icon={<FaBuilding />}
             label="Department"
-            value="Computer Engineering"
+            value={displayDepartment}
           />
           <InfoItem
             icon={<FaUser />}
             label="Role"
-            value="Student"
+            value={displayRole}
           />
         </div>
       </div>

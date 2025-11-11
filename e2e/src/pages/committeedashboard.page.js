@@ -5,8 +5,9 @@ export class CommitteeDashboardPage {
     constructor(page) {
         this.page = page;
         // Locators
-        this.profileMenu = page.getByText('Committee Name', { exact: true });
-        this.logoutButton = page.getByRole('button', { name: 'Logout' });
+        // Use header positional button like StudentDashboardPage so tests don't depend on placeholder text
+        this.profileMenu = page.locator('header').getByRole('button').nth(1);
+        this.logoutButton = page.getByRole('button', { name: /logout/i });
     }
 
     //clicks profile and then clicks logout

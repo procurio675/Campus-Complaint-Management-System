@@ -6,8 +6,10 @@ export class StudentDashboardPage {
         this.page = page;
 
         // Locators
-        this.profileMenu = page.getByRole('button').filter({ hasText: 'Name' });
-        this.logoutButton = page.getByRole('button', { name: 'Logout' });
+        // The header contains multiple buttons; the profile menu is typically the second button (after notifications).
+        // Use a positional locator so tests don't depend on the displayed name text.
+        this.profileMenu = page.locator('header').getByRole('button').nth(1);
+        this.logoutButton = page.getByRole('button', { name: /logout/i });
     }
 
    //clicks profile and then clicks logout

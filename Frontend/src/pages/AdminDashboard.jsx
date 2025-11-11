@@ -850,6 +850,17 @@ export default function AdminDashboard() {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
+  // Read profile from localStorage and derive display values
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('ccms_user') : null;
+  let currentUser = null;
+  try {
+    currentUser = userStr ? JSON.parse(userStr) : null;
+  } catch (e) {
+    currentUser = null;
+  }
+  const profileInitial = currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'A';
+  const profileName = currentUser?.name ? currentUser.name : 'Admin';
+
   const handleLogout = () => {
     // remove jwt token from local storage
     localStorage.removeItem("ccms_token");
@@ -892,10 +903,10 @@ export default function AdminDashboard() {
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
-                  A
+                  {profileInitial}
                 </div>
                 <span className="font-semibold text-gray-700 hidden md:block">
-                  Admin
+                  {profileName}
                 </span>
                 <FaChevronDown
                   size={12}

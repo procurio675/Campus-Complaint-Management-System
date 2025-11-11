@@ -758,6 +758,21 @@ export default function CommitteeDashboard() {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
+  // Read profile from localStorage and derive display values
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('ccms_user') : null;
+  let currentUser = null;
+  try {
+    currentUser = userStr ? JSON.parse(userStr) : null;
+  } catch (e) {
+    currentUser = null;
+  }
+  const profileInitial = currentUser?.committeeType
+    ? currentUser.committeeType.charAt(0).toUpperCase()
+    : currentUser?.name
+    ? currentUser.name.charAt(0).toUpperCase()
+    : 'C';
+  const profileName = currentUser?.committeeType ?? currentUser?.name ?? 'Committee Name';
+
   const handleLogout = () => {
     // Clear stored auth data like the student dashboard does
     localStorage.removeItem("ccms_token");
@@ -798,10 +813,10 @@ export default function CommitteeDashboard() {
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-lg">
-                  C
+                  {profileInitial}
                 </div>
                 <span className="font-semibold text-gray-700 hidden md:block">
-                  Committee Name
+                  {profileName}
                 </span>
                 <FaChevronDown
                   size={12}

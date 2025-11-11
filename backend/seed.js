@@ -30,10 +30,10 @@ const seedDatabase = async () => {
       { name: 'Krish R Malhotra', email: '202301099@dau.ac.in', password: 'malhotra123', role: 'student' },
 
       // Committee Members (one for each committee type)
-      { name: 'Canteen Committee', email: 'canteen@dau.ac.in', password: 'canteen123', role: 'committee', committeeType: 'Canteen' },
-      { name: 'Hostel Committee', email: 'hostel@dau.ac.in', password: 'hostel123', role: 'committee', committeeType: 'Hostel' },
+      { name: 'Cafeteria Management Committee', email: 'canteen@dau.ac.in', password: 'canteen123', role: 'committee', committeeType: 'Canteen' },
+      { name: 'Hostel Management Committee', email: 'hostel@dau.ac.in', password: 'hostel123', role: 'committee', committeeType: 'Hostel' },
       { name: 'Sports Committee', email: 'sports@dau.ac.in', password: 'sports123', role: 'committee', committeeType: 'Sports' },
-      { name: 'Tech Committee', email: 'tech@dau.ac.in', password: 'tech123', role: 'committee', committeeType: 'Tech Committee' },
+      { name: 'Tech Support Committee', email: 'tech@dau.ac.in', password: 'tech123', role: 'committee', committeeType: 'Tech Committee' },
       { name: 'Disciplinary Committee', email: 'disciplinary@dau.ac.in', password: 'disciplinary123', role: 'committee', committeeType: 'Disciplinary Action' },
       { name: 'Maintenance Committee', email: 'maintenance@dau.ac.in', password: 'maintenance123', role: 'committee', committeeType: 'Maintenance' },
     ];

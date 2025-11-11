@@ -734,6 +734,16 @@ export default function StudentDashboard() {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
+  // load logged-in user (stored at login) and derive display values
+  let _storedUser = null;
+  try {
+    _storedUser = JSON.parse(localStorage.getItem("ccms_user"));
+  } catch (e) {
+    _storedUser = null;
+  }
+  const profileName = (_storedUser && _storedUser.name) || "Name";
+  const profileInitial = profileName ? profileName.charAt(0).toUpperCase() : "N";
+
   const handleLogout = () => {
     // Clear all authentication data from localStorage
     localStorage.removeItem("ccms_token");
@@ -763,8 +773,8 @@ export default function StudentDashboard() {
        
         <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b">
          
-          <h1 className="text-lg font-semibold text-gray-800">
-            Campus Complaint Management System
+          <h1 className="text-xl font-semibold text-gray-800">
+            Campus Complaint Resolve
           </h1>
           <div className="flex items-center gap-6">
             <button className="text-gray-500 hover:text-gray-800 transition-colors">
@@ -776,10 +786,10 @@ export default function StudentDashboard() {
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
-                  N
+                  {profileInitial}
                 </div>
                 <span className="font-semibold text-gray-700 hidden md:block">
-                  Name
+                  {profileName}
                 </span>
                 <FaChevronDown
                   size={12}

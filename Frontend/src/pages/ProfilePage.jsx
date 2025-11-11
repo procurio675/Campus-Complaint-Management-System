@@ -169,21 +169,44 @@ export default function ProfilePage() {
             label="Email Address"
             value={displayEmail}
           />
-          <InfoItem
-            icon={<FaIdBadge />}
-            label="Student ID"
-            value={displayStudentID}
-          />
-          <InfoItem
-            icon={<FaBuilding />}
-            label="Department"
-            value={displayDepartment}
-          />
-          <InfoItem
-            icon={<FaUser />}
-            label="Role"
-            value={displayRole}
-          />
+
+          {/* Decide whether to show Student ID and Department: only show when local-part has NO English letters */}
+          {(() => {
+            const localPart = displayEmail.includes("@") ? displayEmail.split("@")[0] : "";
+            const hasLetter = /[A-Za-z]/.test(localPart);
+            const showIdDept = !hasLetter;
+            if (!showIdDept) {
+              // show only Role when there's a letter in username
+              return (
+                <InfoItem
+                  icon={<FaUser />}
+                  label="Role"
+                  value={displayRole}
+                />
+              );
+            }
+
+            // show full details when id is numeric-only
+            return (
+              <>
+                <InfoItem
+                  icon={<FaIdBadge />}
+                  label="Student ID"
+                  value={displayStudentID}
+                />
+                <InfoItem
+                  icon={<FaBuilding />}
+                  label="Department"
+                  value={displayDepartment}
+                />
+                <InfoItem
+                  icon={<FaUser />}
+                  label="Role"
+                  value={displayRole}
+                />
+              </>
+            );
+          })()}
         </div>
       </div>
 

@@ -62,6 +62,29 @@ const ComplaintSchema = new mongoose.Schema({
         // Array to store local file paths (from Multer) or cloud storage URLs
         type: [String],
         default: [],
+    },
+    statusHistory: {
+        // Track status changes with descriptions
+        type: [{
+            status: {
+                type: String,
+                enum: ['pending', 'in-progress', 'resolved', 'rejected'],
+                required: true,
+            },
+            description: {
+                type: String,
+                default: '',
+            },
+            updatedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+            },
+            updatedAt: {
+                type: Date,
+                default: Date.now,
+            }
+        }],
+        default: [],
     }
 }, { timestamps: true });
 

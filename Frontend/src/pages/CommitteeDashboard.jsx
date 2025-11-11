@@ -90,7 +90,11 @@ const AssignedComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+  const [statusDescription, setStatusDescription] = useState("");
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     fetchAssignedComplaints();
@@ -130,20 +134,56 @@ const AssignedComplaintsPage = () => {
     }
   };
 
-  const updateComplaintStatus = async (complaintId, newStatus) => {
+  const handleStatusUpdate = async () => {
+    if (!newStatus || !statusDescription.trim()) {
+      alert("Please select a status and provide a description.");
+      return;
+    }
+
     try {
-      setUpdatingStatus(complaintId);
+      setUpdating(true);
       const token = localStorage.getItem("ccms_token");
-      
-      // TODO: Create update status endpoint
-      // For now, just refresh the list
+
+      await axios.patch(
+        `${API_BASE_URL}/complaints/${selectedComplaint._id}/status`,
+        {
+          status: newStatus,
+          description: statusDescription.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Refresh complaints list
       await fetchAssignedComplaints();
+      
+      // Close modal and reset
+      setShowStatusModal(false);
+      setSelectedComplaint(null);
+      setNewStatus("");
+      setStatusDescription("");
+      
+      alert("Status updated successfully!");
     } catch (err) {
       console.error("Update Status Error:", err);
-      alert("Failed to update status. Please try again.");
+      alert(
+        err?.response?.data?.message ||
+          "Failed to update status. Please try again."
+      );
     } finally {
-      setUpdatingStatus(null);
+      setUpdating(false);
     }
+  };
+
+  const openStatusModal = (complaint) => {
+    setSelectedComplaint(complaint);
+    setNewStatus(complaint.status);
+    setStatusDescription("");
+    setShowStatusModal(true);
   };
 
   const getStatusBadge = (status) => {
@@ -305,34 +345,87 @@ const AssignedComplaintsPage = () => {
                     {formatDate(complaint.createdAt)}
                   </td>
                   <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={`/committee-dashboard/complaint/${complaint._id}`}
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-sm"
-                      >
-                        <FaEye />
-                        View
-                      </Link>
-                      {complaint.status === 'pending' && (
-                        <button
-                          onClick={() => updateComplaintStatus(complaint._id, 'in-progress')}
-                          disabled={updatingStatus === complaint._id}
-                          className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 font-medium text-sm disabled:opacity-50"
-                        >
-                          {updatingStatus === complaint._id ? (
-                            <FaSpinner className="animate-spin" />
-                          ) : (
-                            <FaCheckCircle />
-                          )}
-                          Start
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => openStatusModal(complaint)}
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    >
+                      Update Status
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Status Update Modal */}
+      {showStatusModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Update Complaint Status
+            </h2>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Complaint:</strong> {selectedComplaint.title}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>ID:</strong> {getComplaintId(selectedComplaint._id)}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                New Status
+              </label>
+              <select
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Description (Required)
+              </label>
+              <textarea
+                value={statusDescription}
+                onChange={(e) => setStatusDescription(e.target.value)}
+                placeholder="e.g., Assigned to maintenance team, expected resolution in 2 hours."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                rows="3"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleStatusUpdate}
+                disabled={updating}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {updating ? "Updating..." : "Update"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowStatusModal(false);
+                  setSelectedComplaint(null);
+                  setNewStatus("");
+                  setStatusDescription("");
+                }}
+                disabled={updating}
+                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

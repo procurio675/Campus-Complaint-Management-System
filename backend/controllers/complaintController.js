@@ -456,3 +456,142 @@ export const getComplaint = async (req, res) => {
   }
 };
 
+/**
+ * Get all complaints (Admin only)
+ * GET /api/complaints/all
+ */
+export const getAllComplaints = async (req, res) => {
+  try {
+    const user = req.user;
+    
+    // Check if user is admin
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        message: 'Only admins can access all complaints',
+      });
+    }
+
+    // Fetch all complaints with user details
+    const complaints = await Complaint.find({})
+      .sort({ createdAt: -1 })
+      .populate('userId', 'name email')
+      .populate('statusHistory.updatedBy', 'name email')
+      .select('-__v');
+
+    // Format complaints to hide user identity if anonymous
+    const formattedComplaints = complaints.map((complaint) => {
+      const complaintObj = complaint.toObject();
+      
+      // If anonymous, hide user details
+      if (complaint.isAnonymous) {
+        complaintObj.userId = {
+          name: 'Anonymous',
+          email: null,
+        };
+      }
+      
+      return complaintObj;
+    });
+
+    res.status(200).json({
+      complaints: formattedComplaints,
+      total: formattedComplaints.length,
+    });
+  } catch (error) {
+    console.error('Get All Complaints Error:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to fetch all complaints',
+    });
+  }
+};
+
+/**
+ * Update complaint status with description (Admin and Committee)
+ * PATCH /api/complaints/:id/status
+ */
+export const updateComplaintStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, description } = req.body;
+    const user = req.user;
+
+    // Validate status
+    const validStatuses = ['pending', 'in-progress', 'resolved', 'rejected'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        message: 'Invalid status. Must be one of: pending, in-progress, resolved, rejected',
+      });
+    }
+
+    // Validate description
+    if (!description || description.trim().length === 0) {
+      return res.status(400).json({
+        message: 'Description is required when updating status',
+      });
+    }
+
+    // Check if user is admin or committee
+    if (user.role !== 'admin' && user.role !== 'committee') {
+      return res.status(403).json({
+        message: 'Only admins and committee members can update complaint status',
+      });
+    }
+
+    // Find the complaint
+    const complaint = await Complaint.findById(id);
+
+    if (!complaint) {
+      return res.status(404).json({
+        message: 'Complaint not found',
+      });
+    }
+
+    // If committee, verify they have access to this complaint's category
+    if (user.role === 'committee') {
+      const committeeCategoryMap = {
+        'Hostel': 'Hostel Management',
+        'Canteen': 'Cafeteria',
+        'Tech Committee': 'Tech-Support',
+        'Sports': 'Sports',
+        'Disciplinary Action': 'Internal Complaints',
+        'Maintenance': 'Hostel Management',
+      };
+
+      const allowedCategory = committeeCategoryMap[user.committeeType];
+      
+      if (complaint.category !== allowedCategory) {
+        return res.status(403).json({
+          message: 'You do not have permission to update this complaint',
+        });
+      }
+    }
+
+    // Update status
+    complaint.status = status;
+
+    // Add to status history
+    complaint.statusHistory.push({
+      status: status,
+      description: description.trim(),
+      updatedBy: user._id,
+      updatedAt: new Date(),
+    });
+
+    await complaint.save();
+
+    // Populate the updated complaint
+    await complaint.populate('userId', 'name email');
+    await complaint.populate('statusHistory.updatedBy', 'name email');
+
+    res.status(200).json({
+      message: 'Complaint status updated successfully',
+      complaint: complaint.toObject(),
+    });
+  } catch (error) {
+    console.error('Update Complaint Status Error:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to update complaint status',
+    });
+  }
+};
+

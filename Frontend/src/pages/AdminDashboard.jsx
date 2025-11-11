@@ -2,21 +2,632 @@ import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
 import { FaBell, FaUserCircle, FaChevronDown } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
+import axios from "axios";
+import API_BASE_URL from "../config/api.js";
 
 import AdminSidebar from "../components/AdminSidebar";
-import DashboardHome from "./DashboardHome";
 import ProfilePage from "./ProfilePage";
 
+// Admin Dashboard Home with real-time complaints
+const AdminDashboardHome = () => {
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0,
+    rejected: 0,
+  });
+  const [recentComplaints, setRecentComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-const AllComplaintsPage = () => (
-  <div className="bg-white p-6 rounded-xl shadow-lg">
-    <h1 className="text-2xl font-bold text-gray-800">All Complaints</h1>
-    <p className="mt-4 text-gray-600">
-      This page will list all complaints across the system. <br />
-      Admins can view, assign, or manage them here.
-    </p>
-  </div>
-);
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const token = localStorage.getItem("ccms_token");
+      if (!token) {
+        setError("You are not logged in. Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch all complaints for admin
+      const { data } = await axios.get(
+        `${API_BASE_URL}/complaints/all`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const complaints = data.complaints || [];
+      
+      // Calculate stats
+      const statsData = {
+        total: complaints.length,
+        pending: complaints.filter(c => c.status === 'pending').length,
+        inProgress: complaints.filter(c => c.status === 'in-progress').length,
+        resolved: complaints.filter(c => c.status === 'resolved').length,
+        rejected: complaints.filter(c => c.status === 'rejected').length,
+      };
+      
+      setStats(statsData);
+      // Get only the 5 most recent complaints
+      setRecentComplaints(complaints.slice(0, 5));
+    } catch (err) {
+      console.error("Fetch Dashboard Data Error:", err);
+      setError(
+        err?.response?.data?.message ||
+          "Failed to fetch dashboard data. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusStyles = {
+      pending: "bg-yellow-100 text-yellow-800",
+      "in-progress": "bg-blue-100 text-blue-800",
+      resolved: "bg-green-100 text-green-800",
+      rejected: "bg-red-100 text-red-800",
+    };
+
+    return (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          statusStyles[status] || "bg-gray-100 text-gray-800"
+        }`}
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
+      </span>
+    );
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const getComplaintId = (id) => {
+    if (!id) return "N/A";
+    return `CC${id.slice(-6).toUpperCase()}`;
+  };
+
+  const getUserName = (userId) => {
+    if (!userId) return "Unknown";
+    return userId.name || "Unknown";
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">Admin Dashboard</h1>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading dashboard data...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">Admin Dashboard</h1>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={fetchDashboardData}
+            className="mt-2 text-sm text-red-600 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const statsCards = [
+    {
+      label: "Total Complaints",
+      value: stats.total,
+      color: "blue",
+    },
+    {
+      label: "Pending",
+      value: stats.pending,
+      color: "red",
+    },
+    {
+      label: "In Progress",
+      value: stats.inProgress,
+      color: "yellow",
+    },
+    {
+      label: "Resolved",
+      value: stats.resolved,
+      color: "green",
+    },
+  ];
+
+  const getBorderColor = (color) => {
+    switch (color) {
+      case "blue":
+        return "border-blue-500";
+      case "green":
+        return "border-green-500";
+      case "yellow":
+        return "border-yellow-500";
+      case "red":
+        return "border-red-500";
+      default:
+        return "border-gray-500";
+    }
+  };
+
+  const getBackgroundColor = (color) => {
+    switch (color) {
+      case "blue":
+        return "bg-blue-50";
+      case "green":
+        return "bg-green-50";
+      case "yellow":
+        return "bg-yellow-50";
+      case "red":
+        return "bg-red-50";
+      default:
+        return "bg-gray-50";
+    }
+  };
+
+  const getLabelColor = (color) => {
+    switch (color) {
+      case "blue":
+        return "text-blue-700";
+      case "green":
+        return "text-green-700";
+      case "yellow":
+        return "text-yellow-700";
+      case "red":
+        return "text-red-700";
+      default:
+        return "text-gray-700";
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800">Welcome, College Admin 👋</h1>
+        <p className="text-gray-600 mt-2">
+          Here's an overview of your recent complaint activity.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statsCards.map((stat) => (
+          <div
+            key={stat.label}
+            className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
+              stat.color
+            )} ${getBorderColor(stat.color)}`}
+          >
+            <div className="flex justify-between items-center">
+              <span
+                className={`text-sm font-medium ${getLabelColor(stat.color)}`}
+              >
+                {stat.label}
+              </span>
+            </div>
+            <p className="text-3xl font-bold text-gray-800 mt-2">
+              {stat.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">
+            Recent Complaints
+          </h2>
+          <Link
+            to="/admin-dashboard/all-complaints"
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            View All →
+          </Link>
+        </div>
+        {recentComplaints.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">
+            No complaints have been filed yet.
+          </p>
+        ) : (
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Complaint ID
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Title
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Status
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Filed By
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  Date
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentComplaints.map((complaint) => (
+                <tr key={complaint._id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="p-3 text-gray-700 font-mono text-sm">
+                    {getComplaintId(complaint._id)}
+                  </td>
+                  <td className="p-3 text-gray-700 max-w-xs truncate">
+                    {complaint.title}
+                  </td>
+                  <td className="p-3">{getStatusBadge(complaint.status)}</td>
+                  <td className="p-3 text-gray-600 text-sm">
+                    {getUserName(complaint.userId)}
+                  </td>
+                  <td className="p-3 text-gray-600 text-sm">
+                    {formatDate(complaint.createdAt)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const AllComplaintsPage = () => {
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+  const [statusDescription, setStatusDescription] = useState("");
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    fetchAllComplaints();
+  }, []);
+
+  const fetchAllComplaints = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const token = localStorage.getItem("ccms_token");
+      if (!token) {
+        setError("You are not logged in. Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await axios.get(
+        `${API_BASE_URL}/complaints/all`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setComplaints(data.complaints || []);
+    } catch (err) {
+      console.error("Fetch All Complaints Error:", err);
+      setError(
+        err?.response?.data?.message ||
+          "Failed to fetch complaints. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!newStatus || !statusDescription.trim()) {
+      alert("Please select a status and provide a description.");
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      const token = localStorage.getItem("ccms_token");
+
+      await axios.patch(
+        `${API_BASE_URL}/complaints/${selectedComplaint._id}/status`,
+        {
+          status: newStatus,
+          description: statusDescription.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Refresh complaints list
+      await fetchAllComplaints();
+      
+      // Close modal and reset
+      setShowStatusModal(false);
+      setSelectedComplaint(null);
+      setNewStatus("");
+      setStatusDescription("");
+      
+      alert("Status updated successfully!");
+    } catch (err) {
+      console.error("Update Status Error:", err);
+      alert(
+        err?.response?.data?.message ||
+          "Failed to update status. Please try again."
+      );
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const openStatusModal = (complaint) => {
+    setSelectedComplaint(complaint);
+    setNewStatus(complaint.status);
+    setStatusDescription("");
+    setShowStatusModal(true);
+  };
+
+  const getStatusBadge = (status) => {
+    const statusStyles = {
+      pending: "bg-yellow-100 text-yellow-800",
+      "in-progress": "bg-blue-100 text-blue-800",
+      resolved: "bg-green-100 text-green-800",
+      rejected: "bg-red-100 text-red-800",
+    };
+
+    return (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          statusStyles[status] || "bg-gray-100 text-gray-800"
+        }`}
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
+      </span>
+    );
+  };
+
+  const getPriorityBadge = (priority) => {
+    const priorityStyles = {
+      High: "bg-red-100 text-red-800",
+      Medium: "bg-yellow-100 text-yellow-800",
+      Low: "bg-green-100 text-green-800",
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+          priorityStyles[priority] || "bg-gray-100 text-gray-800"
+        }`}
+      >
+        {priority}
+      </span>
+    );
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const getComplaintId = (id) => {
+    if (!id) return "N/A";
+    return `CC${id.slice(-6).toUpperCase()}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">All Complaints</h1>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading complaints...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">All Complaints</h1>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={fetchAllComplaints}
+            className="mt-2 text-sm text-red-600 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">All Complaints</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Total: {complaints.length} complaints
+          </p>
+        </div>
+        <button
+          onClick={fetchAllComplaints}
+          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {complaints.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No complaints found.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                <th className="p-3 text-sm font-semibold text-gray-600">ID</th>
+                <th className="p-3 text-sm font-semibold text-gray-600">Title</th>
+                <th className="p-3 text-sm font-semibold text-gray-600">Priority</th>
+                <th className="p-3 text-sm font-semibold text-gray-600">Status</th>
+                <th className="p-3 text-sm font-semibold text-gray-600">Filed By</th>
+                <th className="p-3 text-sm font-semibold text-gray-600">Date</th>
+                <th className="p-3 text-sm font-semibold text-gray-600">Committee</th>
+                <th className="p-3 text-sm font-semibold text-gray-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {complaints.map((complaint) => (
+                <tr
+                  key={complaint._id}
+                  className="border-b hover:bg-gray-50 transition-colors"
+                >
+                  <td className="p-3 text-gray-700 font-mono text-sm">
+                    {getComplaintId(complaint._id)}
+                  </td>
+                  <td className="p-3 text-gray-700 max-w-xs truncate">
+                    {complaint.title}
+                  </td>
+                  <td className="p-3">{getPriorityBadge(complaint.priority)}</td>
+                  <td className="p-3">{getStatusBadge(complaint.status)}</td>
+                  <td className="p-3 text-gray-600 text-sm">
+                    {complaint.userId?.name || "Unknown"}
+                  </td>
+                  <td className="p-3 text-gray-600 text-sm">
+                    {formatDate(complaint.createdAt)}
+                  </td>
+                  <td className="p-3 text-gray-600 text-sm">
+                    {complaint.category}
+                  </td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => openStatusModal(complaint)}
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    >
+                      Update Status
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Status Update Modal */}
+      {showStatusModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Update Complaint Status
+            </h2>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Complaint:</strong> {selectedComplaint.title}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>ID:</strong> {getComplaintId(selectedComplaint._id)}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                New Status
+              </label>
+              <select
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Description (Required)
+              </label>
+              <textarea
+                value={statusDescription}
+                onChange={(e) => setStatusDescription(e.target.value)}
+                placeholder="e.g., Assigned to maintenance team, expected resolution in 2 hours."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                rows="3"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleStatusUpdate}
+                disabled={updating}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {updating ? "Updating..." : "Update"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowStatusModal(false);
+                  setSelectedComplaint(null);
+                  setNewStatus("");
+                  setStatusDescription("");
+                }}
+                disabled={updating}
+                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 
 const AnalyticsPage = () => (
@@ -320,7 +931,7 @@ export default function AdminDashboard() {
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-8">
           <Routes>
-            <Route path="/" element={<DashboardHome />} />
+            <Route path="/" element={<AdminDashboardHome />} />
             <Route path="all-complaints" element={<AllComplaintsPage />} />
             <Route path="general-complaints" element={<GeneralComplaintsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />

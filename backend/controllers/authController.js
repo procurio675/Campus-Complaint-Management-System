@@ -202,6 +202,14 @@ const resetPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
+    // Check if new password is same as current password
+    const isSamePassword = await user.matchPassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({ 
+        message: 'New password cannot be the same as your current password. Please choose a different password.' 
+      });
+    }
+
     // Update password (pre-save hook will hash it)
     user.password = newPassword;
     await user.save();

@@ -227,6 +227,211 @@ const MyComplaintsPage = () => {
   );
 };
 
+// Complaint Detail Page with Status History
+const ComplaintDetailPage = () => {
+  const [complaint, setComplaint] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  // Get complaint ID from URL
+  const complaintId = window.location.pathname.split('/').pop();
+
+  useEffect(() => {
+    fetchComplaintDetails();
+  }, [complaintId]);
+
+  const fetchComplaintDetails = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const token = localStorage.getItem("ccms_token");
+      if (!token) {
+        setError("You are not logged in. Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await axios.get(
+        `${API_BASE_URL}/complaints/${complaintId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setComplaint(data.complaint);
+    } catch (err) {
+      console.error("Fetch Complaint Details Error:", err);
+      setError(
+        err?.response?.data?.message ||
+          "Failed to fetch complaint details. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusStyles = {
+      pending: "bg-yellow-100 text-yellow-800",
+      "in-progress": "bg-blue-100 text-blue-800",
+      resolved: "bg-green-100 text-green-800",
+      rejected: "bg-red-100 text-red-800",
+    };
+
+    return (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          statusStyles[status] || "bg-gray-100 text-gray-800"
+        }`}
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
+      </span>
+    );
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getComplaintId = (id) => {
+    if (!id) return "N/A";
+    return `CC${id.slice(-6).toUpperCase()}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">Complaint Details</h1>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading complaint details...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !complaint) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">Complaint Details</h1>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error || "Complaint not found"}</p>
+          <button
+            onClick={() => navigate("/student-dashboard/my-complaints")}
+            className="mt-2 text-sm text-red-600 hover:underline"
+          >
+            Back to My Complaints
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Complaint Details</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              ID: {getComplaintId(complaint._id)}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/student-dashboard/my-complaints")}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            ← Back to My Complaints
+          </button>
+        </div>
+
+        {/* Complaint Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <p className="text-sm text-gray-600 font-semibold">Title</p>
+            <p className="text-gray-800">{complaint.title}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 font-semibold">Status</p>
+            <div className="mt-1">{getStatusBadge(complaint.status)}</div>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 font-semibold">Committee</p>
+            <p className="text-gray-800">{complaint.category}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 font-semibold">Priority</p>
+            <p className="text-gray-800">{complaint.priority}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 font-semibold">Filed On</p>
+            <p className="text-gray-800">{formatDate(complaint.createdAt)}</p>
+          </div>
+          {complaint.location && (
+            <div>
+              <p className="text-sm text-gray-600 font-semibold">Location</p>
+              <p className="text-gray-800">{complaint.location}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="mb-6">
+          <p className="text-sm text-gray-600 font-semibold mb-2">Description</p>
+          <p className="text-gray-800 whitespace-pre-wrap">{complaint.description}</p>
+        </div>
+      </div>
+
+      {/* Status History */}
+      {complaint.statusHistory && complaint.statusHistory.length > 0 && (
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Status Updates</h2>
+          <div className="space-y-4">
+            {complaint.statusHistory.map((history, index) => (
+              <div
+                key={index}
+                className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 rounded-r-lg"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  {getStatusBadge(history.status)}
+                  <span className="text-sm text-gray-600">
+                    {formatDate(history.updatedAt)}
+                  </span>
+                </div>
+                {history.description && (
+                  <p className="text-gray-700 text-sm">{history.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Show message if no status updates yet */}
+      {(!complaint.statusHistory || complaint.statusHistory.length === 0) && (
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Status Updates</h2>
+          <p className="text-gray-500 text-center py-8">
+            No status updates yet. You will be notified when there are updates on your complaint.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AllComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -474,9 +679,6 @@ const AllComplaintsPage = () => {
                 <th className="p-3 text-sm font-semibold text-gray-600">
                   Upvotes
                 </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Action
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -515,17 +717,6 @@ const AllComplaintsPage = () => {
                       >
                         <FaThumbsUp size={14} />
                       </button>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={`/student-dashboard/complaint/${complaint._id}`}
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-sm"
-                      >
-                        <FaEye />
-                        View
-                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -626,6 +817,7 @@ export default function StudentDashboard() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="add-complaint" element={<AddComplaintPage />} />
             <Route path="my-complaints" element={<MyComplaintsPage />} />
+            <Route path="complaint/:id" element={<ComplaintDetailPage />} />
             <Route path="all-complaints" element={<AllComplaintsPage />} />
           </Routes>
         </main>

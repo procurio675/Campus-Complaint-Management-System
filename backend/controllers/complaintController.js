@@ -1,21 +1,11 @@
 import Complaint from '../models/Complaint.js';
 import { classifyComplaint } from '../utils/aiRouting.js';
-import path from 'path';
-import fs from 'fs';
-import { promisify } from 'util';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const mkdir = promisify(fs.mkdir);
-const writeFile = promisify(fs.writeFile);
 
 /**
- * Submit a new complaint
- * POST /api/complaints
+ * Create a new complaint
+ * POST /api/complaints/create
  */
-export const submitComplaint = async (req, res) => {
+export const createComplaint = async (req, res) => {
   try {
     const { title, description, location, type } = req.body;
     const userId = req.user._id; // From auth middleware
@@ -40,21 +30,10 @@ export const submitComplaint = async (req, res) => {
       };
     }
 
-    // Handle file uploads if any
-    const attachments = [];
-    if (req.files && req.files.length > 0) {
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(__dirname, '..', 'uploads', 'complaints');
-      await mkdir(uploadsDir, { recursive: true });
-
-      // Save files
-      for (const file of req.files) {
-        const fileName = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const filePath = path.join(uploadsDir, fileName);
-        await writeFile(filePath, file.buffer);
-        attachments.push(`uploads/complaints/${fileName}`);
-      }
-    }
+    // Cloudinary provides the asset URL on the path property; secure_url is a fallback.
+    const attachments = (req.files || [])
+      .map((file) => file.path || file.secure_url)
+      .filter(Boolean);
 
     // Create complaint in database
     const complaint = await Complaint.create({
@@ -86,12 +65,15 @@ export const submitComplaint = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Submit Complaint Error:', error);
+    console.error('Create Complaint Error:', error);
     res.status(500).json({
       message: error.message || 'Failed to submit complaint',
     });
   }
 };
+
+// Backward compatibility: reuse the same implementation under the old name used by legacy routes.
+export const submitComplaint = createComplaint;
 
 /**
  * Get complaint statistics for the logged-in student

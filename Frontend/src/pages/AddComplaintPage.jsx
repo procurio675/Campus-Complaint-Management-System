@@ -28,9 +28,14 @@ export default function AddComplaintPage() {
 
   const onFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
-    const MAX_FILES = 3;
-    const MAX_FILE_SIZE = 5 * 1024 * 1024;
-    const ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+    const MAX_FILES = 5;
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const ALLOWED_TYPES = [
+      "image/jpeg",
+      "image/png",
+      "video/mp4",
+      "video/quicktime",
+    ];
 
     const allFiles = [...files];
     const newPreviews = [...preview];
@@ -46,17 +51,17 @@ export default function AddComplaintPage() {
       }
 
       if (!ALLOWED_TYPES.includes(file.type)) {
-        newError = "Only JPG, PNG, or PDF files are allowed.";
+        newError = "Only JPG, PNG, MP4, or MOV files are allowed.";
         continue;
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        newError = `${file.name} exceeds 5MB limit.`;
+        newError = `${file.name} exceeds 10MB limit.`;
         continue;
       }
 
       if (allFiles.length >= MAX_FILES) {
-        newError = "You can upload up to 3 files only.";
+        newError = "You can upload up to 5 files only.";
         break;
       }
 
@@ -65,8 +70,8 @@ export default function AddComplaintPage() {
     }
 
     const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0);
-    if (totalSize > 10 * 1024 * 1024) {
-      newError = "Total upload size cannot exceed 10MB.";
+    if (totalSize > 50 * 1024 * 1024) {
+      newError = "Total upload size cannot exceed 50MB.";
     }
 
     setFiles(allFiles);
@@ -183,13 +188,13 @@ export default function AddComplaintPage() {
 
       // Call API
       const { data } = await axios.post(
-        `${API_BASE_URL}/complaints`,
+        `${API_BASE_URL}/complaints/create`,
         formData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
           },
+          withCredentials: true,
         }
       );
 
@@ -201,9 +206,10 @@ export default function AddComplaintPage() {
       // Navigate to my complaints page
       navigate("/student-dashboard/my-complaints");
     } catch (error) {
-      console.error("Submit Complaint Error:", error);
+      console.error("Submit Complaint Error:", error?.response || error);
       const errorMessage =
         error?.response?.data?.message ||
+        error?.message ||
         "Failed to submit complaint. Please try again.";
       setErrors([errorMessage]);
     } finally {
@@ -336,7 +342,7 @@ export default function AddComplaintPage() {
                 type="file"
                 multiple
                 onChange={onFileChange}
-                accept=".jpg,.jpeg,.png,.pdf"
+                accept=".jpg,.jpeg,.png,.mp4,.mov"
                 className="hidden"
               />
             </label>

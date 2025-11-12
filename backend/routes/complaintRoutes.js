@@ -1,7 +1,8 @@
 import express from 'express';
-import multer from 'multer';
 import { protect } from '../middlewares/authMiddleware.js';
+import { upload } from '../utils/fileUploadService.js';
 import {
+  createComplaint,
   submitComplaint,
   getMyComplaints,
   getMyComplaintsStats,
@@ -16,29 +17,19 @@ import {
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB per file
-  },
-  fileFilter: (req, file, cb) => {
-    // Allow only images and PDFs
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPG, PNG, or PDF files are allowed'), false);
-    }
-  },
-});
-
 // Protected routes - require authentication
+router.post(
+  '/create',
+  protect,
+  upload.array('attachments', 5),
+  createComplaint
+);
+
+// Legacy endpoint for clients still posting to /api/complaints
 router.post(
   '/',
   protect,
-  upload.array('attachments', 3),
+  upload.array('attachments', 5),
   submitComplaint
 );
 

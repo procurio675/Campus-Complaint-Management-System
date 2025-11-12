@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 dotenv.config();
 const app = express();
 
-// ✅ Official CORS setup
+// Official CORS setup
 const allowedOrigins = [
   "http://localhost:5173", // React dev server
   "http://localhost:3000", // Alternate React port
@@ -30,40 +30,40 @@ app.use(
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true, // 🔥 Allow Authorization headers and cookies
+    credentials: true, // Allow Authorization headers and cookies
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// ✅ JSON & URL parsing
+//  JSON & URL parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ MongoDB connection
+//  MongoDB connection
 const mongoURI = process.env.MONGO_URI;
 if (!mongoURI) {
-  console.error("❌ MONGO_URI missing in .env file");
+  console.error(" MONGO_URI missing in .env file");
   process.exit(1);
 }
 
 mongoose
   .connect(mongoURI)
-  .then(() => console.log("✅ MongoDB connected..."))
+  .then(() => console.log(" MongoDB connected..."))
   .catch((err) => {
-    console.error("❌ MongoDB connection failed:", err);
+    console.error(" MongoDB connection failed:", err);
     process.exit(1);
   });
 
-// ✅ Routes
+//  Routes
 app.get("/", (req, res) => {
-  res.send("Backend running successfully ✅");
+  res.send("Backend running successfully ");
 });
 
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
 
-// ✅ Centralized Multer and file upload error handling
+//  Centralized Multer and file upload error handling
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
     return res.status(400).json({ message: "File is too large. 10MB limit." });
@@ -88,7 +88,7 @@ app.use((err, req, res, next) => {
   return next(err);
 });
 
-// ✅ Fallback global error handler
+//  Fallback global error handler
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err?.stack || err);
   try {
@@ -115,10 +115,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
-// ✅ Start server
+//  Start server
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () =>
-  console.log(`🚀 Server running at http://localhost:${PORT}`)
+  console.log(` Server running at http://localhost:${PORT}`)
 );
 
 // Handle uncaught exceptions

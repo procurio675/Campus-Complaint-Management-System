@@ -28,16 +28,22 @@ jobs:
         working-directory: e2e
         run: npx playwright install --with-deps
 
-      - name: 🧪 Run Playwright E2E Tests
+      - name:  Run Playwright E2E Tests
         env:
           CI: true
 
-          API_BASE_URL: "http://localhost:3001"  
+          # --- All your existing secrets ---
+          API_BASE_URL: "http://localhost:3001"
           MONGO_URI: '${{ secrets.MONGO_URI }}'
           JWT_SECRET: '${{ secrets.JWT_SECRET }}'
           EMAIL_USER: '${{ secrets.EMAIL_USER }}'
           EMAIL_PASS: '${{ secrets.EMAIL_PASS }}'
           GOOGLE_API_KEY: '${{ secrets.GOOGLE_API_KEY }}'
+
+          # --- ADDED THESE 3 LINES ---
+          CLOUDINARY_CLOUD_NAME: '${{ secrets.CLOUDINARY_CLOUD_NAME }}'
+          CLOUDINARY_API_KEY: '${{ secrets.CLOUDINARY_API_KEY }}'
+          CLOUDINARY_API_SECRET: '${{ secrets.CLOUDINARY_API_SECRET }}'
 
         run: npx playwright test --config=e2e/playwright.config.js --reporter=html
 

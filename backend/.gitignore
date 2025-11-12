@@ -24,3 +24,6 @@ Thumbs.db
 # --- Build Output ---
 dist/
 build/
+
+# --- Generated Output ---
+out/

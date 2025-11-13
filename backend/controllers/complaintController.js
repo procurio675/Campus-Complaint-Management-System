@@ -1,7 +1,5 @@
 import Complaint from '../models/Complaint.js';
-import Notification from '../models/Notification.js';
 import { classifyComplaint } from '../utils/aiRouting.js';
-import { sendStatusUpdateEmail } from '../utils/emailService.js';
 
 /**
  * Create a new complaint
@@ -563,7 +561,6 @@ export const updateComplaintStatus = async (req, res) => {
     }
 
     // Update status
-    const previousStatus = complaint.status;
     complaint.status = status;
 
     // Add to status history
@@ -579,28 +576,6 @@ export const updateComplaintStatus = async (req, res) => {
     // Populate the updated complaint
     await complaint.populate('userId', 'name email');
     await complaint.populate('statusHistory.updatedBy', 'name email');
-
-    // If status actually changed, create a notification and send an email
-    if (previousStatus !== status) {
-      try {
-        const message = `Your complaint \"${complaint.title}\" status was updated to ${status}.`;
-        await Notification.create({
-          user: complaint.userId._id || complaint.userId,
-          complaint: complaint._id,
-          type: 'status_update',
-          message,
-          data: { status, description: description.trim() },
-        });
-
-        // Send email (best effort — don't fail the request if email fails)
-        if (complaint.userId && complaint.userId.email) {
-          sendStatusUpdateEmail(complaint.userId.email, complaint.title, status, description.trim())
-            .catch((err) => console.error('Failed to send status update email:', err));
-        }
-      } catch (notifyErr) {
-        console.error('Failed to create/send notification:', notifyErr);
-      }
-    }
 
     res.status(200).json({
       message: 'Complaint status updated successfully',

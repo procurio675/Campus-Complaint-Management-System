@@ -5,7 +5,6 @@ import multer from "multer";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import complaintRoutes from "./routes/complaintRoutes.js";
-import notificationRoutes from "./routes/notificationRoutes.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import path from "path";
@@ -65,7 +64,6 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
-app.use('/api/notifications', notificationRoutes);
 
 //  Centralized Multer and file upload error handling
 app.use((err, req, res, next) => {

@@ -218,7 +218,8 @@ export default function AddComplaintPage() {
   };
 
   return (
-    <div className="p-6 md:p-10">
+      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+        <div className="p-6 md:p-10">
       <h1 className="text-3xl font-bold text-gray-800 mb-2">
         File a New Complaint
       </h1>
@@ -226,7 +227,6 @@ export default function AddComplaintPage() {
         Please provide accurate and detailed information. The system will
         automatically route your complaint to the relevant committee.
       </p>
-      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
         <form onSubmit={submit} className="space-y-6">
           {/* Title */}
           <div>

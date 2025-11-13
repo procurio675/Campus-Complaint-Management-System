@@ -25,6 +25,8 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://localhost:5173", // React dev server
   "http://localhost:3000", // Alternate React port
+  "http://localhost:5175",
+  "http://localhost:5174",
 ];
 
 app.use(

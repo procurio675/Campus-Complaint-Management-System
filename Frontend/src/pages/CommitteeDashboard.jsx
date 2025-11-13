@@ -1371,7 +1371,7 @@ export default function CommitteeDashboard() {
         
         <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b">
           <h1 className="text-lg font-semibold text-gray-800">
-            Campus Complaint Management System
+            Campus Complaint Resolve
           </h1>
           <div className="flex items-center gap-6">
             <button className="text-gray-500 hover:text-gray-800 transition-colors">

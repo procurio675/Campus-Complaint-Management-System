@@ -310,14 +310,26 @@ export const getAssignedComplaints = async (req, res) => {
     }
 
     // Find complaints assigned to this committee's category
+    // Note: We will sort in-memory by upvotes (desc) then by creation date (desc)
     const complaints = await Complaint.find({ category })
-      .sort({ createdAt: -1 })
       .populate('userId', 'name email')
       .select('-__v');
+    
+    // Sort by upvote count (descending), then by createdAt (newest first)
+    complaints.sort((a, b) => {
+      const aUpvotes = a.upvotes?.length || 0;
+      const bUpvotes = b.upvotes?.length || 0;
+      if (bUpvotes !== aUpvotes) {
+        return bUpvotes - aUpvotes;
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
 
     // Format complaints to hide user identity if anonymous
     const formattedComplaints = complaints.map((complaint) => {
       const complaintObj = complaint.toObject();
+      // Include upvoteCount for UI convenience
+      complaintObj.upvoteCount = complaint.upvotes?.length || 0;
       
       // If anonymous, hide user details
       if (complaint.isAnonymous) {

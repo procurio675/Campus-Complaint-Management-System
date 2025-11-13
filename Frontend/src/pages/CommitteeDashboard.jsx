@@ -308,6 +308,9 @@ const AssignedComplaintsPage = () => {
                   Title
                 </th>
                 <th className="p-3 text-sm font-semibold text-gray-600">
+                  Upvotes
+                </th>
+                <th className="p-3 text-sm font-semibold text-gray-600">
                   Priority
                 </th>
                 <th className="p-3 text-sm font-semibold text-gray-600">
@@ -335,6 +338,9 @@ const AssignedComplaintsPage = () => {
                   </td>
                   <td className="p-3 text-gray-700 max-w-xs truncate">
                     {complaint.title}
+                  </td>
+                  <td className="p-3 text-gray-700 text-sm text-center">
+                    {complaint.upvoteCount || complaint.upvotes?.length || 0}
                   </td>
                   <td className="p-3">{getPriorityBadge(complaint.priority)}</td>
                   <td className="p-3">{getStatusBadge(complaint.status)}</td>

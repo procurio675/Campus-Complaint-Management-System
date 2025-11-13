@@ -43,12 +43,25 @@ const SidebarLink = ({ to, icon, label }) => {
   );
 };
 
+// Logo Component (matching student dashboard)
+const Logo = () => (
+  <div className="flex items-center gap-2 mb-8">
+    <div className="bg-blue-600 p-2 rounded-full text-white">
+      <span className="font-bold text-xl">CC</span>
+    </div>
+    <div className="flex flex-col">
+      <span className="text-gray-700 font-semibold text-lg">CCMS</span>
+      <span className="text-gray-500 text-sm font-medium">Committee Portal</span>
+    </div>
+  </div>
+);
+
 // Main Sidebar Component
 const CommitteeSidebar = () => {
   return (
     <aside className="fixed top-0 left-0 w-64 h-full bg-white border-r flex flex-col z-10">
-      <div className="h-20 flex items-center justify-center px-8 border-b">
-        <h1 className="text-xl font-bold text-blue-700">Committee Portal</h1>
+      <div className="p-6 border-b">
+        <Logo />
       </div>
       <nav className="flex-1 p-4 space-y-2">
         <SidebarLink

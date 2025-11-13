@@ -14,7 +14,10 @@ const Logo = () => (
     <div className="bg-blue-600 p-2 rounded-full text-white">
       <span className="font-bold text-xl">CC</span>
     </div>
-    <span className="text-gray-700 font-semibold text-lg">CCMS</span>
+    <div className="flex flex-col">
+      <span className="text-gray-700 font-semibold text-lg">CCMS</span>
+      <span className="text-gray-500 text-sm font-medium">Student Portal</span>
+    </div>
   </div>
 );
 

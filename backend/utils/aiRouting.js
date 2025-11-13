@@ -61,6 +61,166 @@ export async function classifyComplaint(title, body) {
 }
 
 /**
+ * Classify a complaint into a subcategory (committee-specific).
+ * Attempts to call an external LLM endpoint if configured via SUBCATEGORY_LLM_URL.
+ * Falls back to simple keyword-based rules per committee.
+ * Returns a short string label for the subcategory.
+ */
+export async function classifySubcategory(title, body, committeeType, allowedList) {
+  const text = (title || '') + ' ' + (body || '');
+  const llmUrl = process.env.SUBCATEGORY_LLM_URL;
+
+  // Known allowed subcategories per committee (as provided)
+  const allowedByCommittee = {
+    'Hostel Management': ['Plumbing','Electrical','Broken Furniture','Washroom Cleanliness','Pest Control','Water Supply','Power Supply','Staff Behavior','Common Area Cleanliness','Animals Issue'],
+    'Cafeteria': ['Food Quality','Food Variety','Item Availability','Overcharging','Staff Behavior','Slow Service','Cleanliness of Tables/Utensils','Waste Management','Infrastructure','Animals Issue'],
+    'Sports': ['Equipment Damage','Equipment Shortage','Ground/Court Maintenance','Scheduling','Safety Concerns','Mismanagement During Events'],
+    'Tech-Support': ['WiFi Connectivity','Slow Internet','Login or Portal','Computer system','Software Installation','Projector or Smartboard','Email or Authentication'],
+    'Academic': ['Class Scheduling','Faculty Availability','Course Material','Exam Scheduling','Assignment or Marks Disputes','Timetable Errors'],
+    'Annual Fest': ['Event Scheduling','Venue Problems','Poor Coordination','Registration','Logistics or Equipment Problems','Volunteer Mismanagement','Delay in Announcements','Disturbance'],
+    'Cultural': ['Event Coordination','Practice Room Availability','Equipment or Technical Support','Audition or Selection','Mismanagement During Events','Costume or Props Problems','Disturbance'],
+    'Student Placement': ['Placement Process','Company Visit Scheduling','Communication Delay','Eligibility or Criteria','Interview Coordination Problems','Resume Verification','Pre-Placement Talk'],
+    'Internal Complaints': ['Harassment Complaints','Discrimination Complaints','Bullying or Ragging','Staff Misconduct','Student Misconduct','Privacy Concerns','Safety Violations'],
+  };
+
+  const allowed = Array.isArray(allowedList) && allowedList.length ? allowedList : (allowedByCommittee[committeeType] || []);
+
+  // Ask LLM if configured, providing allowed list so it must choose one
+  if (llmUrl && typeof fetch === 'function') {
+    try {
+      const resp = await fetch(llmUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body, committeeType, allowed }),
+        // no timeout handling here; rely on environment
+      });
+      if (resp.ok) {
+        const json = await resp.json();
+        const candidate = (json?.subcategory || json?.category || json?.label || '') + '';
+        const norm = candidate.trim();
+        if (norm) {
+          // Try to match candidate to allowed list (case-insensitive)
+          const match = allowed.find(a => a.toLowerCase() === norm.toLowerCase());
+          if (match) return match;
+        }
+      }
+    } catch (err) {
+      console.warn('Subcategory LLM call failed:', err?.message || err);
+    }
+  }
+
+  // Rule-based mapping constrained to allowed list
+  const t = (text || '').toLowerCase();
+
+  const rules = {
+    'Hostel Management': {
+      'Plumbing': ['water','tap','toilet','washroom','drain','leak','plumb'],
+      'Electrical': ['electric','electricity','power','short circuit','lights','plug','power cut'],
+      'Broken Furniture': ['bed','chair','table','furnitur','broken','door','window'],
+      'Washroom Cleanliness': ['clean','washroom','toilet','hygiene','soap','sanitation'],
+      'Pest Control': ['pest','rodent','cockroach','mosquito','insect'],
+      'Water Supply': ['no water','water supply','tap dry','water shortage'],
+      'Power Supply': ['power supply','electricity cut','power outage'],
+      'Staff Behavior': ['warden','staff','behavior','rude','misconduct'],
+      'Common Area Cleanliness': ['common area','lobby','corridor','clean','garbage'],
+      'Animals': ['animal','animals','stray','dog','cat','monkey','bird','rodent'],
+    },
+    'Cafeteria': {
+      'Food Quality': ['food','taste','spoiled','stale','quality'],
+      'Food Variety': ['variety','menu','options','choices'],
+      'Item Availability': ['available','out of','not available','sold out'],
+      'Overcharging': ['overcharge','price','expensive','charged'],
+      'Staff Behavior': ['staff','behavior','rude','service'],
+      'Slow Service': ['slow','delay','long time','waiting'],
+      'Cleanliness of Tables/Utensils': ['table','utensil','clean','hygiene','dirty'],
+      'Waste Management': ['waste','garbage','trash','disposal'],
+      'Infrastructure': ['infrastructure','kitchen','building','facility','leak'],
+      'Animals': ['animal','animals','rodent','pest','mouse','rat','dog','cat'],
+    },
+    'Sports': {
+      'Equipment Damage': ['broken','damage','torn','crack','damaged equipment'],
+      'Equipment Shortage': ['shortage','not enough','insufficient','lack'],
+      'Ground/Court Maintenance': ['ground','court','maintenance','field','pitch'],
+      'Scheduling': ['schedule','timing','clash','conflict'],
+      'Safety Concerns': ['safety','unsafe','injury','danger'],
+      'Mismanagement During Events': ['mismanagement','coordination','organize','event problem'],
+    },
+    'Tech-Support': {
+      'WiFi Connectivity': ['wifi','connectivity','router','connection'],
+      'Slow Internet': ['slow internet','latency','slow','bandwidth'],
+      'Login or Portal': ['login','portal','password','signin','access'],
+      'Computer system': ['computer','pc','system','hardware','boot'],
+      'Software Installation': ['install','installation','software','setup'],
+      'Projector or Smartboard': ['projector','smartboard','display','screen'],
+      'Email or Authentication': ['email','auth','authentication','otp'],
+    },
+    'Academic': {
+      'Class Scheduling': ['class schedule','class timing','schedule','slot'],
+      'Faculty Availability': ['faculty','teacher','availability','absent','not available'],
+      'Course Material': ['material','notes','syllabus','resource','content'],
+      'Exam Scheduling': ['exam','exam schedule','date','timing'],
+      'Assignment or Marks Disputes': ['assignment','marks','grade','dispute','evaluation'],
+      'Timetable Errors': ['timetable','timetable error','timetable issue','clash'],
+    },
+    'Annual Fest': {
+      'Event Scheduling': ['event schedule','schedule','timing','clash'],
+      'Venue Problems': ['venue','location','place','hall','stage'],
+      'Poor Coordination': ['coordination','organize','management','mismanage'],
+      'Registration': ['registration','signup','register','form'],
+      'Logistics or Equipment Problems': ['logistic','equipment','sound','transport'],
+      'Volunteer Mismanagement': ['volunteer','volunteers','mismanage'],
+      'Delay in Announcements': ['announcement','delay','notice'],
+      'Disturbance': ['disturb','noise','disturbance'],
+    },
+    'Cultural': {
+      'Event Coordination': ['coordination','organize','management','mismanage'],
+      'Practice Room Availability': ['practice room','availability','room','space'],
+      'Equipment or Technical Support': ['sound','mic','equipment','technical'],
+      'Audition or Selection': ['audition','selection','tryout'],
+      'Mismanagement During Events': ['mismanage','coordination','organize'],
+      'Costume or Props Problems': ['costume','props','dress','prop'],
+      'Disturbance': ['disturb','noise','disturbance'],
+    },
+    'Student Placement': {
+      'Placement Process': ['placement','process','placements'],
+      'Company Visit Scheduling': ['company visit','company','visit','schedule'],
+      'Communication Delay': ['communication','delay','email','response'],
+      'Eligibility or Criteria': ['eligibility','criteria','criteria'],
+      'Interview Coordination Problems': ['interview','coordination','slot','schedule'],
+      'Resume Verification': ['resume','verification','cv','document'],
+      'Pre-Placement Talk': ['pre-placement','ppt','talk','session'],
+    },
+    'Internal Complaints': {
+      'Harassment Complaints': ['harass','harassment','sexual','assault','ragging'],
+      'Discrimination Complaints': ['discriminat','discrimination','bias'],
+      'Bullying or Ragging': ['bully','bullying','ragging'],
+      'Staff Misconduct': ['staff misconduct','staff','misconduct'],
+      'Student Misconduct': ['student misconduct','student','misconduct'],
+      'Privacy Concerns': ['privacy','data','confidential'],
+      'Safety Violations': ['safety','violation','unsafe','danger'],
+    }
+  };
+
+  const committeeRules = rules[committeeType] || {};
+
+  // Try to match rules
+  for (const [label, kws] of Object.entries(committeeRules)) {
+    for (const kw of kws) {
+      if (t.includes(kw)) return label;
+    }
+  }
+
+  // As a last resort, try to map to any allowed keyword by substring
+  for (const a of allowed) {
+    if (!a) continue;
+    if (t.includes(a.toLowerCase().split(' ')[0])) return a;
+  }
+
+  // If nothing matched, return null to indicate no matching subcategory
+  return null;
+}
+
+/**
  * Fallback rule-based classification when AI fails
  * @param {string} title - Complaint title
  * @param {string} body - Complaint description

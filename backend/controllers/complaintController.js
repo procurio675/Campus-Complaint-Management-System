@@ -1,6 +1,6 @@
 import Complaint from '../models/Complaint.js';
 import Notification from '../models/Notification.js';
-import { classifyComplaint } from '../utils/aiRouting.js';
+import { classifyComplaint, classifySubcategory } from '../utils/aiRouting.js';
 import { sendStatusUpdateEmail } from '../utils/emailService.js';
 
 /**
@@ -382,86 +382,172 @@ export const getCommitteeAnalytics = async (req, res) => {
     const category = committeeCategoryMap[committeeType] || committeeType;
 
     if (!category) {
+      // If no category mapping is found, return zeros for the requested fields
       return res.status(200).json({
-        total: 0,
-        resolved: 0,
-        avgResolutionTimeDays: 0,
-        resolutionRate: 0,
-        category: null,
-        committeeType,
+        categoryCounts: [],
+        priorityCounts: { High: 0, Medium: 0, Low: 0 },
+        statusCounts: { pending: 0, 'in-progress': 0, resolved: 0 },
+        dailyCounts30Days: [],
       });
     }
 
-    // Fetch complaints for this category
-    const complaints = await Complaint.find({ category }).select('createdAt status statusHistory updatedAt');
+    // Prepare date range for last 30 days (inclusive)
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 29); // last 30 calendar days including today
+    startDate.setHours(0, 0, 0, 0);
 
-    const total = complaints.length;
+    // Helper to build a flexible category match (exact or case-insensitive or substring)
+    const matchCategory = (val) => {
+      if (!val || typeof val !== 'string') return {};
+      const escaped = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return {
+        $or: [
+          { category: val },
+          { category: { $regex: new RegExp(`^${escaped}$`, 'i') } },
+          { category: { $regex: new RegExp(escaped, 'i') } },
+        ],
+      };
+    };
 
-    // Compute resolved count and resolution times
-    let resolved = 0;
-    let totalResolutionDays = 0;
+    const baseMatch = matchCategory(category);
 
-    for (const c of complaints) {
-      // Determine if resolved
-      const hasResolvedStatus = c.status === 'resolved' || (c.statusHistory && c.statusHistory.some(s => s.status === 'resolved'));
-      if (hasResolvedStatus) {
-        resolved += 1;
+    // Aggregations (use MongoDB aggregation pipelines)
+    // 1) categoryCounts: counts grouped by category (top categories)
+    const categoryCountsAgg = await Complaint.aggregate([
+      { $match: baseMatch },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      { $project: { _id: 0, category: '$_id', count: 1 } },
+    ]);
 
-        // Find resolvedAt from statusHistory if available (first occurrence)
-        let resolvedAt = null;
-        if (c.statusHistory && c.statusHistory.length) {
-          const resolvedEntry = c.statusHistory.find(s => s.status === 'resolved');
-          if (resolvedEntry && resolvedEntry.updatedAt) resolvedAt = resolvedEntry.updatedAt;
-        }
+    // 2) priorityCounts: counts grouped by priority
+    const priorityAgg = await Complaint.aggregate([
+      { $match: baseMatch },
+      { $group: { _id: '$priority', count: { $sum: 1 } } },
+    ]);
 
-        // Fallback to updatedAt (mongoose timestamps) if resolvedAt not found
-        if (!resolvedAt) {
-          // use c.updatedAt if present; createdAt and updatedAt exist because timestamps: true
-          resolvedAt = c.updatedAt || null;
-        }
-
-        if (resolvedAt) {
-          const created = c.createdAt instanceof Date ? c.createdAt : new Date(c.createdAt);
-          const resolvedDate = resolvedAt instanceof Date ? resolvedAt : new Date(resolvedAt);
-          const diffMs = resolvedDate - created;
-          const diffDays = diffMs / (1000 * 60 * 60 * 24);
-          if (!isNaN(diffDays) && diffDays >= 0) totalResolutionDays += diffDays;
-        }
+    // Convert priorityAgg to object with explicit keys
+    const priorityCounts = { High: 0, Medium: 0, Low: 0 };
+    for (const p of priorityAgg) {
+      const key = (p._id || '').toString();
+      if (key === 'High' || key === 'Medium' || key === 'Low') {
+        priorityCounts[key] = p.count;
       }
     }
 
+    // 3) statusCounts: counts grouped by status (only pending, in-progress, resolved)
+    const statusAgg = await Complaint.aggregate([
+      { $match: baseMatch },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+
+    const statusCounts = { pending: 0, 'in-progress': 0, resolved: 0 };
+    for (const s of statusAgg) {
+      const key = (s._id || '').toString();
+      if (key === 'pending' || key === 'in-progress' || key === 'resolved') {
+        statusCounts[key] = s.count;
+      }
+    }
+
+    // 4) dailyCounts30Days: counts per day for last 30 days
+    const dailyAgg = await Complaint.aggregate([
+      { $match: { $and: [ baseMatch, { createdAt: { $gte: startDate, $lte: endDate } } ] } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 },
+        },
+      },
+      { $project: { _id: 0, date: '$_id', count: 1 } },
+      { $sort: { date: 1 } },
+    ]);
+
+    // Compute KPI totals: total, resolved, avgResolutionTimeDays, resolutionRate
+    // total: count of complaints matching baseMatch
+    const total = await Complaint.countDocuments(baseMatch);
+
+    // resolved: complaints where status is 'resolved' or statusHistory contains a 'resolved' entry
+    const resolvedMatch = { $and: [ baseMatch, { $or: [ { status: 'resolved' }, { statusHistory: { $elemMatch: { status: 'resolved' } } } ] } ] };
+    const resolvedDocs = await Complaint.find(resolvedMatch).select('createdAt statusHistory updatedAt').lean();
+    const resolved = resolvedDocs.length;
+
+    // Compute average resolution time (days) from createdAt -> resolvedAt (statusHistory.updatedAt or updatedAt fallback)
+    let totalResolutionDays = 0;
+    for (const c of resolvedDocs) {
+      let resolvedAt = null;
+      if (Array.isArray(c.statusHistory) && c.statusHistory.length) {
+        const resolvedEntry = c.statusHistory.find((s) => s && s.status === 'resolved' && s.updatedAt);
+        if (resolvedEntry && resolvedEntry.updatedAt) resolvedAt = resolvedEntry.updatedAt;
+      }
+      if (!resolvedAt) resolvedAt = c.updatedAt || null;
+      if (resolvedAt && c.createdAt) {
+        const created = new Date(c.createdAt);
+        const r = new Date(resolvedAt);
+        const diffMs = r - created;
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        if (!isNaN(diffDays) && diffDays >= 0) totalResolutionDays += diffDays;
+      }
+    }
     const avgResolutionTimeDays = resolved > 0 ? +(totalResolutionDays / resolved).toFixed(2) : 0;
     const resolutionRate = total > 0 ? +((resolved / total) * 100).toFixed(2) : 0;
 
-    // Compute month-to-date counts (complaints created this month, complaints resolved this month)
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Fill missing dates with zero counts to ensure last 30 days continuity
+    const dailyMap = new Map(dailyAgg.map((d) => [d.date, d.count]));
+    const dailyCounts30Days = [];
+    for (let i = 0; i < 30; i++) {
+      const dt = new Date(startDate);
+      dt.setDate(startDate.getDate() + i);
+      const isoDate = dt.toISOString().slice(0, 10);
+      dailyCounts30Days.push({ date: isoDate, count: dailyMap.get(isoDate) || 0 });
+    }
 
-    const monthlyTotal = await Complaint.countDocuments({
-      category,
-      createdAt: { $gte: startOfMonth },
-    });
+    // Build dynamic subcategoryCounts by classifying each complaint (title+description)
+    const complaintsForSub = await Complaint.find(baseMatch).select('title description').lean();
+    const subCounts = {};
+    if (complaintsForSub && complaintsForSub.length) {
+      // Classify in parallel but throttle (simple Promise.all here)
+      const classificationPromises = complaintsForSub.map((c) =>
+        classifySubcategory(c.title || '', c.description || '', category)
+          .catch((e) => {
+            console.warn('Subcategory classification failed for complaint:', e?.message || e);
+            return 'Other';
+          })
+      );
+      const results = await Promise.all(classificationPromises);
+      for (const sc of results) {
+        const key = sc || 'Other';
+        subCounts[key] = (subCounts[key] || 0) + 1;
+      }
+    }
 
-    // For monthlyResolved we consider complaints that have a statusHistory entry
-    // with status 'resolved' and updatedAt in this month OR have status 'resolved'
-    // and updatedAt in this month (fallback)
-    const monthlyResolved = await Complaint.countDocuments({
-      category,
-      $or: [
-        { statusHistory: { $elemMatch: { status: 'resolved', updatedAt: { $gte: startOfMonth } } } },
-        { status: 'resolved', updatedAt: { $gte: startOfMonth } },
-      ],
-    });
+    // Debugging: log how many documents matched each aggregation (non-intrusive)
+    try {
+      console.debug('[Analytics] category=', category);
+      console.debug('[Analytics] baseMatch=', JSON.stringify(baseMatch));
+      console.debug('[Analytics] categoryCountsAgg=', categoryCountsAgg.length);
+      console.debug('[Analytics] priorityAgg=', priorityAgg.length);
+      console.debug('[Analytics] statusAgg=', statusAgg.length);
+      console.debug('[Analytics] dailyAgg=', dailyAgg.length);
+    } catch (e) {
+      // ignore logging errors
+    }
 
-    res.status(200).json({
+    // Return analytics fields plus KPI values required by frontend
+    return res.status(200).json({
+      categoryCounts: categoryCountsAgg,
+      priorityCounts,
+      statusCounts,
+      dailyCounts30Days,
+      // Dynamic subcategory counts (key = subcategory label, value = count)
+      subcategoryCounts: subCounts,
+      // KPI values (kept for frontend KPI cards)
       total,
       resolved,
-      monthlyTotal,
-      monthlyResolved,
       avgResolutionTimeDays,
       resolutionRate,
-      category,
-      committeeType,
     });
   } catch (error) {
     console.error('Get Committee Analytics Error:', error);

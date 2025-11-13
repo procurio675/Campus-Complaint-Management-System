@@ -265,7 +265,7 @@ const AdminDashboardHome = () => {
                 <th className="p-3 text-sm font-semibold text-gray-600">
                   Title
                 </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
+                <th className="p-3 text-sm font-semibold text-gray-600 w-36">
                   Status
                 </th>
                 <th className="p-3 text-sm font-semibold text-gray-600">
@@ -285,7 +285,7 @@ const AdminDashboardHome = () => {
                   <td className="p-3 text-gray-700 max-w-xs truncate">
                     {complaint.title}
                   </td>
-                  <td className="p-3">{getStatusBadge(complaint.status)}</td>
+                  <td className="p-3 whitespace-nowrap">{getStatusBadge(complaint.status)}</td>
                   <td className="p-3 text-gray-600 text-sm">
                     {getUserName(complaint.userId)}
                   </td>
@@ -699,7 +699,7 @@ const AllComplaintsPage = () => {
                 <th className="p-3 text-sm font-semibold text-gray-600">ID</th>
                 <th className="p-3 text-sm font-semibold text-gray-600">Title</th>
                 <th className="p-3 text-sm font-semibold text-gray-600">Priority</th>
-                <th className="p-3 text-sm font-semibold text-gray-600">Status</th>
+                <th className="p-3 text-sm font-semibold text-gray-600 w-36">Status</th>
                 <th className="p-3 text-sm font-semibold text-gray-600">Filed By</th>
                 <th className="p-3 text-sm font-semibold text-gray-600">Date</th>
                 <th className="p-3 text-sm font-semibold text-gray-600">Committee</th>
@@ -720,7 +720,7 @@ const AllComplaintsPage = () => {
                     {complaint?.title}
                   </td>
                   <td className="p-3">{getPriorityBadge(complaint?.priority)}</td>
-                  <td className="p-3">{getStatusBadge(complaint?.status)}</td>
+                  <td className="p-3 whitespace-nowrap">{getStatusBadge(complaint?.status)}</td>
                   <td className="p-3 text-gray-600 text-sm">
                     {complaint?.userId?.name || "Unknown"}
                   </td>

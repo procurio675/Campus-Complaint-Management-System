@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Routes, Route, Link, useNavigate, NavLink } from "react-router-dom";
 import {
   FaBell,
@@ -17,6 +17,21 @@ import {
 import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  CartesianGrid,
+  Legend,
+} from 'recharts';
 
 // Import shared pages (like Profile)
 import ProfilePage from "./ProfilePage";
@@ -45,7 +60,7 @@ const SidebarLink = ({ to, icon, label }) => {
 
 // Logo Component (matching student dashboard)
 const Logo = () => (
-  <div className="flex items-center gap-2 mb-8">
+  <div className="flex items-center gap-2">
     <div className="bg-blue-600 p-2 rounded-full text-white">
       <span className="font-bold text-xl">CC</span>
     </div>
@@ -60,7 +75,7 @@ const Logo = () => (
 const CommitteeSidebar = () => {
   return (
     <aside className="fixed top-0 left-0 w-64 h-full bg-white border-r flex flex-col z-10">
-      <div className="p-6 border-b">
+      <div className="h-20 flex items-center px-6 border-b">
         <Logo />
       </div>
       <nav className="flex-1 p-4 space-y-2">
@@ -96,12 +111,12 @@ const CommitteeSidebar = () => {
   );
 };
 
+// --- 2. Placeholder Pages for Committee Features ---
 
-
-// --- Component Start ---
-
+// C2: View & manage assigned complaints
 const AssignedComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
+  const [analyticsFilter, setAnalyticsFilter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -109,17 +124,6 @@ const AssignedComplaintsPage = () => {
   const [newStatus, setNewStatus] = useState("");
   const [statusDescription, setStatusDescription] = useState("");
   const [updating, setUpdating] = useState(false);
-
-  // --- STATE FOR SEARCH, SORTING, AND FILTERING ---
-  const [sortConfig, setSortConfig] = useState(null); 
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filters, setFilters] = useState({
-    status: [], 
-    priority: [], 
-  });
-  const [tempFilters, setTempFilters] = useState(filters);
-  const [searchTerm, setSearchTerm] = useState(""); 
-  // --- END STATE ---
 
   useEffect(() => {
     fetchAssignedComplaints();
@@ -147,7 +151,32 @@ const AssignedComplaintsPage = () => {
         }
       );
 
-      setComplaints(data.complaints || []);
+      // Apply analytics filter from localStorage if present (set by Analytics charts)
+      let list = data.complaints || [];
+      try {
+        const raw = localStorage.getItem('analytics_filter');
+        const f = raw ? JSON.parse(raw) : null;
+        setAnalyticsFilter(f);
+        if (f && f.type && f.value != null) {
+          if (f.type === 'category') {
+            list = list.filter((c) => c.category === f.value);
+          } else if (f.type === 'priority') {
+            list = list.filter((c) => c.priority === f.value);
+          } else if (f.type === 'status') {
+            list = list.filter((c) => c.status === f.value);
+          } else if (f.type === 'date') {
+            list = list.filter((c) => {
+              try {
+                return (new Date(c.createdAt)).toISOString().slice(0,10) === f.value;
+              } catch (e) { return false; }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to apply analytics filter', e);
+      }
+
+      setComplaints(list);
     } catch (err) {
       console.error("Fetch Assigned Complaints Error:", err);
       setError(
@@ -157,6 +186,12 @@ const AssignedComplaintsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearAnalyticsFilter = () => {
+    localStorage.removeItem('analytics_filter');
+    setAnalyticsFilter(null);
+    fetchAssignedComplaints();
   };
 
   const handleStatusUpdate = async () => {
@@ -211,18 +246,6 @@ const AssignedComplaintsPage = () => {
     setShowStatusModal(true);
   };
 
-  // --- HELPER FUNCTIONS ---
-  const getComplaintId = (id) => {
-    if (!id) return "N/A";
-    return `CC${id.slice(-6).toUpperCase()}`;
-  };
-
-  const getUserName = (userId) => {
-    if (!userId) return "Unknown";
-    // CRASH FIX: Ensure userId.name is checked before access
-    return userId.name || "Unknown";
-  };
-  
   const getStatusBadge = (status) => {
     const statusStyles = {
       pending: "bg-yellow-100 text-yellow-800",
@@ -230,10 +253,6 @@ const AssignedComplaintsPage = () => {
       resolved: "bg-green-100 text-green-800",
       rejected: "bg-red-100 text-red-800",
     };
-
-    if (!status) return (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800`}>N/A</span>
-    );
 
     return (
       <span
@@ -252,11 +271,6 @@ const AssignedComplaintsPage = () => {
       Medium: "bg-yellow-100 text-yellow-800",
       Low: "bg-green-100 text-green-800",
     };
-
-    if (!priority) return (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800`}>N/A</span>
-    );
-
 
     return (
       <span
@@ -281,133 +295,16 @@ const AssignedComplaintsPage = () => {
     });
   };
 
-  const getSortLabel = () => {
-    if (!sortConfig) return "Sort By";
-    
-    if (sortConfig.key === "priority" && sortConfig.direction === "ascending") {
-        return "Priority: Low ↓";
-    }
-    if (sortConfig.key === "priority" && sortConfig.direction === "descending") {
-        return "Priority: High ↑";
-    }
-    if (sortConfig.key === "createdAt" && sortConfig.direction === "ascending") {
-        return "Date: Oldest ↓";
-    }
-    if (sortConfig.key === "createdAt" && sortConfig.direction === "descending") {
-        return "Date: Newest ↑";
-    }
-
-    return "Sort By";
-  };
-  // --- END HELPER FUNCTIONS ---
-
-  // --- DYNAMIC SORTING, FILTERING, AND SEARCH LOGIC ---
-  const sortComplaints = (key, newDirection) => {
-    setSortConfig({ key, direction: newDirection });
+  const getComplaintId = (id) => {
+    if (!id) return "N/A";
+    return `CC${id.slice(-6).toUpperCase()}`;
   };
 
-  const sortedAndFilteredComplaints = useMemo(() => {
-    let processableComplaints = [...complaints];
-
-    // 1. Search Filtering (Robust Name Matching logic retained)
-    if (searchTerm) {
-      const lowerCaseSearch = searchTerm.toLowerCase().trim();
-      const searchWords = lowerCaseSearch.split(/\s+/).filter(word => word.length > 0);
-
-      processableComplaints = processableComplaints.filter(c => {
-        if (!c) return false;
-        
-        // Fields for direct substring search (Safe access implemented here)
-        const title = (c.title || "").toLowerCase();
-        const category = (c.category || "").toLowerCase();
-        const complaintId = getComplaintId(c._id).toLowerCase();
-        const userName = (c.userId?.name || "").toLowerCase();
-        
-        // Check for direct substring match
-        const directMatch = 
-          title.includes(lowerCaseSearch) ||
-          category.includes(lowerCaseSearch) ||
-          complaintId.includes(lowerCaseSearch);
-
-        if (directMatch) return true;
-        
-        // Check for flexible word match for User Name
-        if (searchWords.length > 0) {
-            const wordMatch = searchWords.every(word => userName.includes(word));
-            if (wordMatch) return true;
-        }
-
-        return false;
-      });
-    }
-
-    // 2. Filter Modal Filtering
-    if (filters.status.length > 0) {
-      processableComplaints = processableComplaints.filter(c => c && filters.status.includes(c.status));
-    }
-    if (filters.priority.length > 0) {
-      processableComplaints = processableComplaints.filter(c => c && filters.priority.includes(c.priority));
-    }
-
-    // 3. Sorting (Stable sorting logic retained)
-    if (sortConfig && sortConfig.key) {
-      processableComplaints.sort((a, b) => {
-        if (!a) return sortConfig.direction === "ascending" ? 1 : -1;
-        if (!b) return sortConfig.direction === "ascending" ? -1 : 1;
-        
-        let aVal = a[sortConfig.key];
-        let bVal = b[sortConfig.key];
-
-        if (sortConfig.key === "priority") {
-          const priorityOrder = { High: 3, Medium: 2, Low: 1 };
-          aVal = priorityOrder[aVal] || 0;
-          bVal = priorityOrder[bVal] || 0;
-        }
-        
-        if (aVal == null) return sortConfig.direction === "ascending" ? 1 : -1;
-        if (bVal == null) return sortConfig.direction === "ascending" ? -1 : 1;
-
-        if (aVal < bVal) {
-          return sortConfig.direction === "ascending" ? -1 : 1;
-        }
-        if (aVal > bVal) {
-          return sortConfig.direction === "ascending" ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-
-    return processableComplaints;
-  }, [complaints, sortConfig, filters, searchTerm]);
-  // --- END DYNAMIC LOGIC ---
-
-  // --- FILTER MODAL HANDLERS ---
-  const handleFilterChange = (filterType, value, isChecked) => {
-    setTempFilters(prev => {
-      const currentValues = prev[filterType];
-      if (isChecked) {
-        return { ...prev, [filterType]: [...currentValues, value] };
-      } else {
-        return { ...prev, [filterType]: currentValues.filter(v => v !== value) };
-      }
-    });
+  const getUserName = (userId) => {
+    if (!userId) return "Unknown";
+    return userId.name || "Unknown";
   };
 
-  const applyFilters = () => {
-    setFilters(tempFilters);
-    setShowFilterModal(false);
-  };
-
-  const clearFilters = () => {
-    const defaultFilters = { status: [], priority: [] };
-    setFilters(defaultFilters);
-    setTempFilters(defaultFilters);
-    setShowFilterModal(false);
-  };
-  // --- END FILTER MODAL HANDLERS ---
-  
-
-  // --- RENDERING BLOCK (Loading/Error) ---
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -435,97 +332,41 @@ const AssignedComplaintsPage = () => {
       </div>
     );
   }
-  // --- END RENDERING BLOCK ---
 
-  // --- MAIN RENDER ---
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Assigned Complaints</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Showing: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
+            Complaints assigned to your committee
           </p>
         </div>
-        
-        {/* NEW/UPDATED CONTROLS */}
-        <div className="flex gap-3 items-center">
-            {/* SEARCH INPUT */}
-            <div className="relative">
-                <input
-                    type="text"
-                    placeholder="Search complaints..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 w-48 sm:w-64"
-                />
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-            </div>
-            
-            {/* DYNAMIC SORT DROPDOWN */}
-            <div className="relative">
-                <select
-                    value={sortConfig ? `${sortConfig.key}-${sortConfig.direction}` : ""}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                            const [key, direction] = value.split('-');
-                            sortComplaints(key, direction);
-                        } else {
-                            setSortConfig(null);
-                        }
-                    }}
-                    className="px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium cursor-pointer"
-                >
-                    <option value="" className="text-gray-500">{getSortLabel()}</option>
-                    <option value="priority-descending">Priority: High to Low</option>
-                    <option value="priority-ascending">Priority: Low to High</option>
-                    <option value="createdAt-descending">Date: New to Old</option>
-                    <option value="createdAt-ascending">Date: Old to New</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                </div>
-            </div>
-
-            {/* FILTER BUTTON (Amazon-style icon) */}
-            <button
-                onClick={() => {
-                    setTempFilters(filters);
-                    setShowFilterModal(true);
-                }}
-                className={`flex items-center space-x-1 px-3 py-2 text-sm rounded-lg shadow-sm font-medium transition-colors border ${
-                    (filters.status.length > 0 || filters.priority.length > 0)
-                        ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd"></path>
-                </svg>
-                { (filters.status.length > 0 || filters.priority.length > 0) && (
-                    <span className={`text-xs font-bold ${ (filters.status.length > 0 || filters.priority.length > 0) ? 'text-white' : 'text-blue-600'}`}>
-                        ({filters.status.length + filters.priority.length})
-                    </span>
-                )}
-            </button>
-
-            {/* REFRESH BUTTON (Original structure retained) */}
-            <button
-              onClick={fetchAssignedComplaints}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Refresh
-            </button>
-        </div>
+        <button
+          onClick={fetchAssignedComplaints}
+          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+        >
+          Refresh
+        </button>
       </div>
 
-      {sortedAndFilteredComplaints.length === 0 ? (
+      {analyticsFilter && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-blue-700">
+              Filter applied: <strong className="text-gray-800">{analyticsFilter.type}</strong> = <span className="font-mono">{analyticsFilter.value}</span>
+            </div>
+            <div>
+              <button onClick={clearAnalyticsFilter} className="text-sm text-blue-600 hover:underline">Clear Filter</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {complaints.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg mb-4">
-            No complaints found matching current criteria.
+            No complaints have been assigned to your committee yet.
           </p>
         </div>
       ) : (
@@ -545,7 +386,7 @@ const AssignedComplaintsPage = () => {
                 <th className="p-3 text-sm font-semibold text-gray-600">
                   Priority
                 </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
+                <th className="p-3 text-sm font-semibold text-gray-600 w-36">
                   Status
                 </th>
                 <th className="p-3 text-sm font-semibold text-gray-600">
@@ -560,36 +401,31 @@ const AssignedComplaintsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {sortedAndFilteredComplaints.map((complaint) => (
+              {complaints.map((complaint) => (
                 <tr
-                  key={complaint?._id || Math.random()}
+                  key={complaint._id}
                   className="border-b hover:bg-gray-50 transition-colors"
                 >
                   <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint?._id)}
+                    {getComplaintId(complaint._id)}
                   </td>
                   <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {/* CRASH FIX: Optional chaining used here */}
-                    {complaint?.title}
+                    {complaint.title}
                   </td>
                   <td className="p-3 text-gray-700 text-sm text-center">
-                    {/* CRASH FIX: Optional chaining used here */}
-                    {complaint?.upvoteCount || complaint?.upvotes?.length || 0}
+                    {complaint.upvoteCount || complaint.upvotes?.length || 0}
                   </td>
-                  <td className="p-3">{getPriorityBadge(complaint?.priority)}</td>
-                  <td className="p-3">{getStatusBadge(complaint?.status)}</td>
+                  <td className="p-3">{getPriorityBadge(complaint.priority)}</td>
+                  <td className="p-3 whitespace-nowrap">{getStatusBadge(complaint.status)}</td>
                   <td className="p-3 text-gray-600 text-sm">
-                    {/* CRASH FIX: Optional chaining used here */}
-                    {getUserName(complaint?.userId)}
+                    {getUserName(complaint.userId)}
                   </td>
                   <td className="p-3 text-gray-600 text-sm">
-                    {/* CRASH FIX: Optional chaining used here */}
-                    {formatDate(complaint?.createdAt)}
+                    {formatDate(complaint.createdAt)}
                   </td>
                   <td className="p-3">
                     <button
-                      // CRASH FIX: Ensure complaint object is safe before passing to modal
-                      onClick={() => complaint && openStatusModal(complaint)}
+                      onClick={() => openStatusModal(complaint)}
                       className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                     >
                       Update Status
@@ -602,7 +438,7 @@ const AssignedComplaintsPage = () => {
         </div>
       )}
 
-      {/* Status Update Modal (Original structure retained) */}
+      {/* Status Update Modal */}
       {showStatusModal && selectedComplaint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
@@ -671,86 +507,6 @@ const AssignedComplaintsPage = () => {
           </div>
         </div>
       )}
-
-      {/* FILTER MODAL (Includes Status and Priority filters) */}
-      {showFilterModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 border-b pb-2">
-              Filter Complaints
-            </h2>
-
-            <div className="space-y-6">
-              {/* Filter by Status */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                  Complaint Status
-                </h3>
-                <div className="flex flex-wrap gap-4">
-                  {["pending", "in-progress", "resolved", "rejected"].map((status) => (
-                    <label key={status} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tempFilters.status.includes(status)}
-                        onChange={(e) =>
-                          handleFilterChange("status", status, e.target.checked)
-                        }
-                        className="form-checkbox h-4 w-4 text-blue-600 rounded"
-                      />
-                      <span className="text-gray-700 text-sm">
-                        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filter by Priority */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                  Priority
-                </h3>
-                <div className="flex flex-wrap gap-4">
-                  {["High", "Medium", "Low"].map((priority) => (
-                    <label key={priority} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tempFilters.priority.includes(priority)}
-                        onChange={(e) =>
-                          handleFilterChange("priority", priority, e.target.checked)
-                        }
-                        className="form-checkbox h-4 w-4 text-blue-600 rounded"
-                      />
-                      <span className="text-gray-700 text-sm">{priority}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-8 pt-4 border-t">
-              <button
-                onClick={applyFilters}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-              >
-                Apply Filters
-              </button>
-              <button
-                onClick={clearFilters}
-                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
-              >
-                Clear Filters
-              </button>
-              <button
-                onClick={() => setShowFilterModal(false)}
-                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -760,6 +516,7 @@ const AnalyticsDashboardPage = () => {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [analyticsData, setAnalyticsData] = useState(null);
 
   // read committeeType from stored user
   let committeeType = null;
@@ -773,6 +530,7 @@ const AnalyticsDashboardPage = () => {
 
   const CACHE_KEY = "committee_analytics";
   const [complaintsList, setComplaintsList] = useState([]);
+  const navigate = useNavigate();
 
   const readCache = (ct) => {
     try {
@@ -858,6 +616,48 @@ const AnalyticsDashboardPage = () => {
     }
   };
 
+  const fetchAnalyticsData = async (opts = { showLoading: true }) => {
+    if (!committeeType) return;
+    const token = localStorage.getItem('ccms_token');
+    if (!token) return;
+    try {
+      if (opts.showLoading) setLoading(true);
+      const url = `${API_BASE_URL}/committee-analytics/${encodeURIComponent(committeeType)}`;
+      const { data } = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+      // Expect exactly: categoryCounts, priorityCounts, statusCounts, dailyCounts30Days
+      // Normalize subcategoryCounts: backend may return an object mapping label->count
+      let subcategoryCountsArr = [];
+      if (data.subcategoryCounts && typeof data.subcategoryCounts === 'object' && !Array.isArray(data.subcategoryCounts)) {
+        subcategoryCountsArr = Object.keys(data.subcategoryCounts).map((k) => ({ category: k, count: data.subcategoryCounts[k] }));
+      } else if (Array.isArray(data.categoryCounts) && data.categoryCounts.length) {
+        // fallback to classic categoryCounts shape [{category, count}, ...]
+        subcategoryCountsArr = data.categoryCounts;
+      }
+
+      setAnalyticsData({
+        subcategoryCounts: subcategoryCountsArr,
+        priorityCounts: data.priorityCounts || { High: 0, Medium: 0, Low: 0 },
+        // statusCounts kept for compatibility though status chart was removed
+        statusCounts: data.statusCounts || { pending: 0, 'in-progress': 0, resolved: 0 },
+        dailyCounts30Days: data.dailyCounts30Days || [],
+      });
+    } catch (e) {
+      console.warn('Failed to fetch analytics data', e?.response?.data || e.message || e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChartClick = (type, value) => {
+    try {
+      localStorage.setItem('analytics_filter', JSON.stringify({ type, value }));
+      // Navigate to assigned complaints so the list will be filtered
+      navigate('/committee-dashboard/assigned-complaints');
+    } catch (e) {
+      console.warn('Failed to apply chart filter', e);
+    }
+  };
+
   // On mount: load cache immediately, then fetch fresh in background
   useEffect(() => {
     if (!committeeType) {
@@ -879,6 +679,8 @@ const AnalyticsDashboardPage = () => {
     fetchMetrics({ showLoading: !cached });
     // also fetch the complaints list so we can compute month-to-date counts client-side
     fetchComplaintsList();
+    // fetch analytics (charts)
+    fetchAnalyticsData({ showLoading: !cached });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1021,6 +823,95 @@ const AnalyticsDashboardPage = () => {
           </span>
         )}
       </div>
+      {/* Charts: Category, Priority, Status, Last 30 Days Trend */}
+      {analyticsData && (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Category Breakdown</h3>
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer>
+                <BarChart data={(analyticsData.subcategoryCounts || []).filter(d => d.count > 0)}>
+                  <XAxis dataKey="category" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count">
+                    {(analyticsData.subcategoryCounts || []).filter(d => d.count > 0).map((entry, idx) => (
+                      <Cell key={`cell-${idx}`} onClick={() => handleChartClick('category', entry.category)} fill={"#4F46E5"} cursor="pointer" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Priority Breakdown</h3>
+            <div className="flex items-center gap-4">
+              <div style={{ width: '100%', height: 220 }} className="flex-1">
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'High', value: analyticsData.priorityCounts.High || 0 },
+                        { name: 'Medium', value: analyticsData.priorityCounts.Medium || 0 },
+                        { name: 'Low', value: analyticsData.priorityCounts.Low || 0 },
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={80}
+                      innerRadius={40}
+                      // keep click behavior but remove hover tooltip
+                      onClick={(e) => e && handleChartClick('priority', e.name)}
+                      cursor="pointer"
+                    >
+                      <Cell fill="#DC2626" />
+                      <Cell fill="#F59E0B" />
+                      <Cell fill="#10B981" />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="w-48">
+                <div className="flex flex-col gap-2">
+                  {[
+                    { label: 'High', color: '#DC2626', value: analyticsData.priorityCounts.High || 0 },
+                    { label: 'Medium', color: '#F59E0B', value: analyticsData.priorityCounts.Medium || 0 },
+                    { label: 'Low', color: '#10B981', value: analyticsData.priorityCounts.Low || 0 },
+                  ].map((item) => (
+                    item.value > 0 && (
+                      <div key={item.label} className="flex items-center gap-2">
+                          <span style={{ width: 12, height: 12, background: item.color, borderRadius: 4, display: 'inline-block' }} />
+                          <span className="text-sm text-gray-700">{item.label} :</span>
+                          <span className="ml-auto font-bold">{item.value}</span>
+                        </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Breakdown removed as requested */}
+
+          <div className="bg-white p-4 rounded-lg shadow md:col-span-2">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Last 30 Days Trend</h3>
+            <div style={{ width: '100%', height: 260 }}>
+              <ResponsiveContainer>
+                <LineChart data={analyticsData.dailyCounts30Days} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" stroke="#4F46E5" dot={{ r: 2 }} onClick={(d) => { if (d && d.activePayload && d.activePayload[0]) handleChartClick('date', d.activePayload[0].payload.date); }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">Click a point to filter assigned complaints by that date.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

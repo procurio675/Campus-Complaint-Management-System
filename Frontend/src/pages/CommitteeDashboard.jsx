@@ -438,15 +438,275 @@ const AssignedComplaintsPage = () => {
   );
 };
 
-// C4: Department/committee analytics dashboard
-const AnalyticsDashboardPage = () => (
-  <div className="bg-white p-6 rounded-xl shadow-lg">
-    <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
-    <p className="mt-4">
-      This page will show department-level metrics, counts, and average resolution time.
-    </p>
-  </div>
-);
+// C4: Department/committee analytics dashboard (committee-scoped, cached, refreshable)
+const AnalyticsDashboardPage = () => {
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // read committeeType from stored user
+  let committeeType = null;
+  try {
+    const u = typeof window !== 'undefined' ? localStorage.getItem('ccms_user') : null;
+    const parsed = u ? JSON.parse(u) : null;
+    committeeType = parsed?.committeeType || parsed?.committee || null;
+  } catch (e) {
+    committeeType = null;
+  }
+
+  const CACHE_KEY = "committee_analytics";
+  const [complaintsList, setComplaintsList] = useState([]);
+
+  const readCache = (ct) => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      return obj?.[ct] || null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const writeCache = (ct, data) => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      obj[ct] = { ...data, fetchedAt: Date.now() };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(obj));
+    } catch (e) {
+      // ignore cache write errors
+      console.warn("Failed to write analytics cache", e);
+    }
+  };
+
+  const fetchMetrics = async (opts = { showLoading: true }) => {
+    if (!committeeType) {
+      setError("Committee type not found in profile. Please re-login or contact admin.");
+      setMetrics(null);
+      return;
+    }
+
+    const token = localStorage.getItem("ccms_token");
+    if (!token) {
+      setError("Missing auth token. Please login again.");
+      setMetrics(null);
+      return;
+    }
+
+    try {
+      if (opts.showLoading) setLoading(true);
+      setError("");
+
+      const url = `${API_BASE_URL}/committee-analytics/${encodeURIComponent(
+        committeeType
+      )}`;
+
+      const { data } = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // normalize shape defensively
+      const normalized = {
+        total: Number(data.total) || 0,
+        resolved: Number(data.resolved) || 0,
+        avgResolutionTimeDays:
+          data.avgResolutionTimeDays == null ? 0 : Number(data.avgResolutionTimeDays),
+        resolutionRate: data.resolutionRate == null ? 0 : Number(data.resolutionRate),
+      };
+
+      setMetrics(normalized);
+      writeCache(committeeType, normalized);
+    } catch (err) {
+      console.error("Fetch committee analytics error:", err);
+      setError(
+        err?.response?.data?.message || "Failed to load analytics. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchComplaintsList = async () => {
+    try {
+      const token = localStorage.getItem('ccms_token');
+      if (!token) return;
+      const { data } = await axios.get(`${API_BASE_URL}/complaints/assigned`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setComplaintsList(data.complaints || []);
+    } catch (e) {
+      console.warn('Failed to fetch complaints list for analytics:', e?.response?.data || e.message || e);
+      setComplaintsList([]);
+    }
+  };
+
+  // On mount: load cache immediately, then fetch fresh in background
+  useEffect(() => {
+    if (!committeeType) {
+      setError("Committee type not found in profile.");
+      return;
+    }
+
+    const cached = readCache(committeeType);
+    if (cached) {
+      setMetrics({
+        total: cached.total || 0,
+        resolved: cached.resolved || 0,
+        avgResolutionTimeDays: cached.avgResolutionTimeDays || 0,
+        resolutionRate: cached.resolutionRate || 0,
+      });
+    }
+
+    // fetch fresh but don't block UI if we showed cache
+    fetchMetrics({ showLoading: !cached });
+    // also fetch the complaints list so we can compute month-to-date counts client-side
+    fetchComplaintsList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleRefresh = () => fetchMetrics({ showLoading: true });
+
+  // small helpers for display
+  const formatDays = (d) => (d == null ? "—" : `${Number(d).toFixed(1)} days`);
+  const formatPct = (p) => (p == null ? "—" : `${Number(p).toFixed(0)}%`);
+
+  // compute month-to-date counts from complaint details (client-side)
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const monthlyTotalLocal = complaintsList.filter((c) => {
+    try {
+      const created = new Date(c.createdAt);
+      return created.getMonth() === currentMonth && created.getFullYear() === currentYear;
+    } catch (e) {
+      return false;
+    }
+  }).length;
+
+  const monthlyResolvedLocal = complaintsList.filter((c) => {
+    try {
+      // check statusHistory for a resolved entry in this month
+      if (c.statusHistory && Array.isArray(c.statusHistory)) {
+        const found = c.statusHistory.find((s) => {
+          if (!s || !s.status) return false;
+          if (s.status !== 'resolved') return false;
+          const dt = s.updatedAt ? new Date(s.updatedAt) : null;
+          return dt && dt.getMonth() === currentMonth && dt.getFullYear() === currentYear;
+        });
+        if (found) return true;
+      }
+
+      // fallback: if complaint.status === 'resolved' and updatedAt is in this month
+      if (c.status === 'resolved') {
+        const ua = c.updatedAt ? new Date(c.updatedAt) : null;
+        if (ua && ua.getMonth() === currentMonth && ua.getFullYear() === currentYear) return true;
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }).length;
+
+  // Prefer client-side computed month-to-date counts when available,
+  // otherwise fall back to backend-provided metrics if present.
+  const displayMonthlyTotal = (typeof monthlyTotalLocal === 'number' && !isNaN(monthlyTotalLocal))
+    ? monthlyTotalLocal
+    : (metrics?.monthlyTotal != null ? metrics.monthlyTotal : null);
+
+  const displayMonthlyResolved = (typeof monthlyResolvedLocal === 'number' && !isNaN(monthlyResolvedLocal))
+    ? monthlyResolvedLocal
+    : (metrics?.monthlyResolved != null ? metrics.monthlyResolved : null);
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">{committeeType || 'Committee'} Analytics</h1>
+          <p className="mt-2 text-gray-600">Overview of complaints handled by your committee.</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm hover:bg-gray-50"
+            disabled={loading}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2 text-gray-600">
+                <FaSpinner className="animate-spin" /> Refreshing...
+              </span>
+            ) : (
+              "Refresh"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-blue-50 border-blue-500">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-blue-700">Total Complaints</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? metrics.total : '—'}</p>
+          {displayMonthlyTotal != null && (
+            <p className="text-sm text-gray-600 mt-1">{displayMonthlyTotal} in current month</p>
+          )}
+        </div>
+
+        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-green-50 border-green-500">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-green-700">Resolved</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? metrics.resolved : '—'}</p>
+          {displayMonthlyResolved != null && (
+            <p className="text-sm text-gray-600 mt-1">{displayMonthlyResolved} in current month</p>
+          )}
+        </div>
+
+        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-yellow-50 border-yellow-500">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-yellow-700">Avg. Resolution Time</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? formatDays(metrics.avgResolutionTimeDays) : '—'}</p>
+        </div>
+
+        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-purple-50 border-purple-500">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-purple-700">Resolution Rate</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? formatPct(metrics.resolutionRate) : '—'}</p>
+        </div>
+      </div>
+
+      <div className="mt-6 text-sm text-gray-500">
+        {metrics && (
+          <span>
+            Last fetched: {
+              (() => {
+                try {
+                  const raw = localStorage.getItem(CACHE_KEY);
+                  const obj = raw ? JSON.parse(raw) : {};
+                  const entry = obj?.[committeeType];
+                  if (entry?.fetchedAt) return new Date(entry.fetchedAt).toLocaleString();
+                } catch (e) {}
+                return 'Now';
+              })()
+            }
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // C5: Generate monthly committee reports (Convener)
 const ReportsPage = () => (

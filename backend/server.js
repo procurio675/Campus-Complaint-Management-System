@@ -3,10 +3,11 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import multer from "multer";
 import cors from "cors";
+import { fileURLToPath } from "url";
 import authRoutes from "./routes/authRoutes.js";
 import complaintRoutes from "./routes/complaintRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import { fileURLToPath } from "url";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 import { dirname } from "path";
 import path from "path";
 import fs from "fs";
@@ -14,7 +15,8 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-dotenv.config();
+// Load env from backend/.env explicitly so running node from repo root works.
+dotenv.config({ path: path.join(__dirname, '.env') });
 const app = express();
 
 // Official CORS setup
@@ -66,6 +68,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/committee-analytics', analyticsRoutes);
 
 //  Centralized Multer and file upload error handling
 app.use((err, req, res, next) => {

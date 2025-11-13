@@ -1,16 +1,36 @@
 import nodemailer from 'nodemailer';
 
-// Create transporter (using Gmail as example - can be configured for other providers)
+// Create transporter (configurable for Gmail or custom SMTP)
 const createTransporter = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('Email configuration missing. Please set EMAIL_USER and EMAIL_PASS in .env file');
+    console.warn('Email configuration incomplete. Email sending will be skipped.');
+    return null;
   }
-  
+
+  const isGmail = process.env.EMAIL_USER.includes('@gmail.com');
+
+  if (isGmail) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+  }
+
+  // Custom SMTP
+  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+  const secure = process.env.SMTP_SECURE === 'true';
+
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: smtpHost,
+    port: smtpPort,
+    secure,
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // Use app password for Gmail
+      pass: process.env.EMAIL_PASS,
     },
   });
 };
@@ -19,7 +39,8 @@ const createTransporter = () => {
 export const sendOTPEmail = async (email, otp) => {
   try {
     const transporter = createTransporter();
-    
+    if (!transporter) return { success: false, error: 'Email not configured' };
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
@@ -51,4 +72,34 @@ export const sendOTPEmail = async (email, otp) => {
   }
 };
 
-export default { sendOTPEmail };
+export const sendStatusUpdateEmail = async (email, complaintTitle, status, description) => {
+  try {
+    const transporter = createTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `Complaint Status Updated: ${complaintTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Complaint Status Update</h2>
+          <p>Your complaint <strong>\"${complaintTitle}\"</strong> status has been updated to <strong>${status}</strong>.</p>
+          <p><strong>Update details:</strong></p>
+          <div style="background-color: #f3f4f6; padding: 14px; margin: 12px 0;">
+            <p style="margin:0;">${description}</p>
+          </div>
+          <p>Best regards,<br/>Campus Complaint Resolve</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Status update email error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export default { sendOTPEmail, sendStatusUpdateEmail };

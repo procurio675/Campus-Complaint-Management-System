@@ -1,5 +1,7 @@
 import Complaint from '../models/Complaint.js';
+import Notification from '../models/Notification.js';
 import { classifyComplaint } from '../utils/aiRouting.js';
+import { sendStatusUpdateEmail } from '../utils/emailService.js';
 
 /**
  * Create a new complaint
@@ -356,6 +358,118 @@ export const getAssignedComplaints = async (req, res) => {
 };
 
 /**
+ * Get analytics for a given committee type (by param)
+ * GET /api/committee-analytics/:committeeType
+ */
+export const getCommitteeAnalytics = async (req, res) => {
+  try {
+    const { committeeType } = req.params;
+
+    // Map committee types to complaint categories (reuse mapping)
+    const committeeCategoryMap = {
+      'Hostel': 'Hostel Management',
+      'Canteen': 'Cafeteria',
+      'Tech Committee': 'Tech-Support',
+      'Sports': 'Sports',
+      'Disciplinary Action': 'Internal Complaints',
+      'Maintenance': 'Hostel Management',
+    };
+
+    // Allow some common alternate keys (e.g. 'Tech' vs 'Tech Committee').
+    // If we don't have a mapping, fall back to using the committeeType string
+    // as the category name — this makes the endpoint more tolerant to values
+    // coming from the frontend or seed data.
+    const category = committeeCategoryMap[committeeType] || committeeType;
+
+    if (!category) {
+      return res.status(200).json({
+        total: 0,
+        resolved: 0,
+        avgResolutionTimeDays: 0,
+        resolutionRate: 0,
+        category: null,
+        committeeType,
+      });
+    }
+
+    // Fetch complaints for this category
+    const complaints = await Complaint.find({ category }).select('createdAt status statusHistory updatedAt');
+
+    const total = complaints.length;
+
+    // Compute resolved count and resolution times
+    let resolved = 0;
+    let totalResolutionDays = 0;
+
+    for (const c of complaints) {
+      // Determine if resolved
+      const hasResolvedStatus = c.status === 'resolved' || (c.statusHistory && c.statusHistory.some(s => s.status === 'resolved'));
+      if (hasResolvedStatus) {
+        resolved += 1;
+
+        // Find resolvedAt from statusHistory if available (first occurrence)
+        let resolvedAt = null;
+        if (c.statusHistory && c.statusHistory.length) {
+          const resolvedEntry = c.statusHistory.find(s => s.status === 'resolved');
+          if (resolvedEntry && resolvedEntry.updatedAt) resolvedAt = resolvedEntry.updatedAt;
+        }
+
+        // Fallback to updatedAt (mongoose timestamps) if resolvedAt not found
+        if (!resolvedAt) {
+          // use c.updatedAt if present; createdAt and updatedAt exist because timestamps: true
+          resolvedAt = c.updatedAt || null;
+        }
+
+        if (resolvedAt) {
+          const created = c.createdAt instanceof Date ? c.createdAt : new Date(c.createdAt);
+          const resolvedDate = resolvedAt instanceof Date ? resolvedAt : new Date(resolvedAt);
+          const diffMs = resolvedDate - created;
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+          if (!isNaN(diffDays) && diffDays >= 0) totalResolutionDays += diffDays;
+        }
+      }
+    }
+
+    const avgResolutionTimeDays = resolved > 0 ? +(totalResolutionDays / resolved).toFixed(2) : 0;
+    const resolutionRate = total > 0 ? +((resolved / total) * 100).toFixed(2) : 0;
+
+    // Compute month-to-date counts (complaints created this month, complaints resolved this month)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const monthlyTotal = await Complaint.countDocuments({
+      category,
+      createdAt: { $gte: startOfMonth },
+    });
+
+    // For monthlyResolved we consider complaints that have a statusHistory entry
+    // with status 'resolved' and updatedAt in this month OR have status 'resolved'
+    // and updatedAt in this month (fallback)
+    const monthlyResolved = await Complaint.countDocuments({
+      category,
+      $or: [
+        { statusHistory: { $elemMatch: { status: 'resolved', updatedAt: { $gte: startOfMonth } } } },
+        { status: 'resolved', updatedAt: { $gte: startOfMonth } },
+      ],
+    });
+
+    res.status(200).json({
+      total,
+      resolved,
+      monthlyTotal,
+      monthlyResolved,
+      avgResolutionTimeDays,
+      resolutionRate,
+      category,
+      committeeType,
+    });
+  } catch (error) {
+    console.error('Get Committee Analytics Error:', error);
+    res.status(500).json({ message: error.message || 'Failed to fetch committee analytics' });
+  }
+};
+
+/**
  * Upvote a public complaint
  * POST /api/complaints/:id/upvote
  */
@@ -560,7 +674,8 @@ export const updateComplaintStatus = async (req, res) => {
       }
     }
 
-    // Update status
+    // Update status and track previous status
+    const previousStatus = complaint.status;
     complaint.status = status;
 
     // Add to status history
@@ -576,6 +691,27 @@ export const updateComplaintStatus = async (req, res) => {
     // Populate the updated complaint
     await complaint.populate('userId', 'name email');
     await complaint.populate('statusHistory.updatedBy', 'name email');
+
+    // If the status actually changed, create a notification and send an email
+    if (previousStatus !== status) {
+      try {
+        const message = `Your complaint \"${complaint.title}\" status was updated to ${status}.`;
+        await Notification.create({
+          user: complaint.userId._id || complaint.userId,
+          complaint: complaint._id,
+          type: 'status_update',
+          message,
+          data: { status, description: description.trim() },
+        });
+
+        if (complaint.userId && complaint.userId.email) {
+          sendStatusUpdateEmail(complaint.userId.email, complaint.title, status, description.trim())
+            .catch((err) => console.error('Failed to send status update email:', err));
+        }
+      } catch (notifyErr) {
+        console.error('Failed to create/send notification:', notifyErr);
+      }
+    }
 
     res.status(200).json({
       message: 'Complaint status updated successfully',

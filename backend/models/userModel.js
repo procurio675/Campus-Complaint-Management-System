@@ -15,11 +15,18 @@ const userSchema = new mongoose.Schema({
     required: function () {
       return this.role === 'committee';
     },
+    // Allow all committee names that appear in seed data and keep older variants for compatibility
     enum: [
       'Canteen',
       'Hostel',
       'Sports',
+      'Tech',
       'Tech Committee',
+      'Academic',
+      'Internal Complaints',
+      'Annual Fest',
+      'Cultural',
+      'Placement',
       'Disciplinary Action',
       'Maintenance',
     ],

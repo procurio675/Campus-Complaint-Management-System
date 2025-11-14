@@ -243,7 +243,7 @@ export default function DashboardHome() {
             Recent Complaints
           </h2>
           <Link
-            to="/student-dashboard/my-complaints"
+            to="/student-dashboard/all-complaints"
             className="text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
             View All →

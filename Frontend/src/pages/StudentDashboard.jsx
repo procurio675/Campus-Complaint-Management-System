@@ -127,23 +127,7 @@ const MyComplaintsPage = () => {
     );
   };
 
-  const getPriorityBadge = (priority) => {
-    const priorityStyles = {
-      High: "bg-red-100 text-red-800",
-      Medium: "bg-yellow-100 text-yellow-800",
-      Low: "bg-green-100 text-green-800",
-    };
-
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          priorityStyles[priority] || "bg-gray-100 text-gray-800"
-        }`}
-      >
-        {priority}
-      </span>
-    );
-  };
+  
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -241,9 +225,7 @@ const MyComplaintsPage = () => {
                 <th className="p-3 text-sm font-semibold text-gray-600">
                   Committee
                 </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Priority
-                </th>
+                
                 <th className="p-3 text-sm font-semibold text-gray-600">
                   Status
                 </th>
@@ -268,7 +250,7 @@ const MyComplaintsPage = () => {
                     {complaint.title}
                   </td>
                   <td className="p-3 text-gray-700">{complaint.category}</td>
-                  <td className="p-3">{getPriorityBadge(complaint.priority)}</td>
+                  
                   <td className="p-3">{getStatusBadge(complaint.status)}</td>
                   <td className="p-3 text-gray-600 text-sm">
                     {formatDate(complaint.createdAt)}
@@ -502,10 +484,6 @@ const ComplaintDetailPage = () => {
             <p className="text-gray-800">{complaint.category}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600 font-semibold">Priority</p>
-            <p className="text-gray-800">{complaint.priority}</p>
-          </div>
-          <div>
             <p className="text-sm text-gray-600 font-semibold">Filed On</p>
             <p className="text-gray-800">{formatDate(complaint.createdAt)}</p>
           </div>
@@ -634,7 +612,7 @@ const AllComplaintsPage = () => {
               ...complaint,
               upvoteCount: data.upvoteCount,
               hasUpvoted: data.hasUpvoted,
-              priority: data.priority, // Update priority if it changed
+              
             };
           }
           return complaint;
@@ -681,23 +659,7 @@ const AllComplaintsPage = () => {
     );
   };
 
-  const getPriorityBadge = (priority) => {
-    const priorityStyles = {
-      High: "bg-red-100 text-red-800",
-      Medium: "bg-yellow-100 text-yellow-800",
-      Low: "bg-green-100 text-green-800",
-    };
-
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          priorityStyles[priority] || "bg-gray-100 text-gray-800"
-        }`}
-      >
-        {priority}
-      </span>
-    );
-  };
+  
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -794,14 +756,9 @@ const AllComplaintsPage = () => {
                   Committee
                 </th>
                 <th className="p-3 text-sm font-semibold text-gray-600">
-                  Priority
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
                   Status
                 </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Filed By
-                </th>
+                
                 <th className="p-3 text-sm font-semibold text-gray-600">
                   Date
                 </th>
@@ -823,11 +780,9 @@ const AllComplaintsPage = () => {
                     {complaint.title}
                   </td>
                   <td className="p-3 text-gray-700">{complaint.category}</td>
-                  <td className="p-3">{getPriorityBadge(complaint.priority)}</td>
+                  
                   <td className="p-3">{getStatusBadge(complaint.status)}</td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {getUserName(complaint.userId)}
-                  </td>
+                  
                   <td className="p-3 text-gray-600 text-sm">
                     {formatDate(complaint.createdAt)}
                   </td>

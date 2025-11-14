@@ -134,7 +134,7 @@ export default function AddComplaintPage() {
       errors.push(
         "Description has excessive repetition of a single character — please revise."
       );
-    
+
     // Ensuring that title has at least one visible alphanumeric character
     if (!/[A-Za-z0-9]/.test(cleanTitle)) {
       errors.push("Title must contain at least one letter or number.");
@@ -158,14 +158,14 @@ export default function AddComplaintPage() {
       setErrors(validationErrors);
       return;
     }
-    
+
     setErrors([]);
     setSubmitting(true);
 
     try {
       // Get token from localStorage
       const token = localStorage.getItem("ccms_token");
-      
+
       if (!token) {
         setErrors(["You are not logged in. Please login again."]);
         setSubmitting(false);
@@ -199,10 +199,14 @@ export default function AddComplaintPage() {
       );
 
       // Show success message with committee information
-      const successMessage = `Complaint submitted successfully!\n\nComplaint ID: CC${data.complaint._id.slice(-6)}\nRouted to: ${data.routing.committee}\nPriority: ${data.routing.priority}`;
-      
+      const successMessage = `Complaint submitted successfully!\n\nComplaint ID: CC${data.complaint._id.slice(
+        -6
+      )}\nRouted to: ${data.routing.committee}\nPriority: ${
+        data.routing.priority
+      }`;
+
       alert(successMessage);
-      
+
       // Navigate to my complaints page
       navigate("/student-dashboard/my-complaints");
     } catch (error) {
@@ -211,7 +215,9 @@ export default function AddComplaintPage() {
       const backendMessage = error?.response?.data?.message;
 
       if (status === 400 && backendMessage?.toLowerCase().includes("spam")) {
-        alert("The system flagged your complaint as spam or too vague. Please revise the details and submit again.");
+        alert(
+          "The system flagged your complaint as spam or too vague. Please revise the details and submit again."
+        );
         setErrors([backendMessage]);
       } else {
         const errorMessage =
@@ -226,16 +232,16 @@ export default function AddComplaintPage() {
   };
 
   return (
-
-      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-        <div className="p-6 md:p-10">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">
-        File a New Complaint
-      </h1>
-      <p className="text-gray-600 mb-8">
-        Please provide accurate and detailed information. The system will
-        automatically route your complaint to the relevant committee.
-      </p>
+    <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+      
+        <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
+          File a New Complaint
+        </h1>
+        <br />
+        <p className="text-gray-600 mb-8">
+          Please provide accurate and detailed information. The system will
+          automatically route your complaint to the relevant committee.
+        </p>
         <form onSubmit={submit} className="space-y-6">
           {/* Title */}
           <div>
@@ -258,7 +264,7 @@ export default function AddComplaintPage() {
                 errors.includes("Title cannot exceed 200 characters.")
                   ? "border-red-500"
                   : "border-gray-300"
-              } rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+              } rounded-lg px-3 py-2 `}
               required
             />
             <div className="flex justify-between mt-1">
@@ -296,7 +302,7 @@ export default function AddComplaintPage() {
                 errors.some((err) => err.toLowerCase().includes("description"))
                   ? "border-red-500"
                   : "border-gray-300"
-              } rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+              } rounded-lg px-3 py-2 `}
               required
             />
             <div className="flex justify-between mt-1">
@@ -323,7 +329,7 @@ export default function AddComplaintPage() {
               value={form.location}
               onChange={handleChange}
               placeholder="e.g., Hostel A Room 214 / C-Block 2nd Floor"
-              className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 "
             />
           </div>
 
@@ -477,7 +483,7 @@ export default function AddComplaintPage() {
             </button>
           </div>
         </form>
-      </div>
+      
     </div>
   );
 }

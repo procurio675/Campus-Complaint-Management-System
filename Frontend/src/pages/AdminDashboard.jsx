@@ -866,14 +866,16 @@ const AllComplaintsPage = () => {
                 </div>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                  Committee
-                </h3>
-                <div className="flex flex-wrap gap-4">
-                  {[...new Set(complaints.map(c => c.category).filter(c => c))]
-                    .sort()
-                    .map((category) => (
-                    <label key={category} className="flex items-center space-x-2 cursor-pointer">
+  <h3 className="text-lg font-semibold text-gray-700 mb-3">
+    Committee/Category
+  </h3>
+  <div className="flex flex-wrap gap-4">
+    {[...new Set(complaints.map(c => c.category).filter(c => c))]
+      .filter(category => category !== "Canteen") 
+       .filter(category => category !== "Tech Committee") 
+      .sort()
+      .map((category) => (
+        <label key={category} className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={tempFilters.committee.includes(category)}

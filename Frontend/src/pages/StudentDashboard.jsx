@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useRef, useEffect, useMemo  } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
-import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye, FaThumbsUp, FaTrash } from "react-icons/fa";
+import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye, FaThumbsUp, FaTrash, FaTimes } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";

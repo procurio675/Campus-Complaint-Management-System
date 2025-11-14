@@ -31,7 +31,7 @@ const resolveCommitteeCategory = (committeeType) =>
  */
 export const createComplaint = async (req, res) => {
   try {
-    const { title, description, location, type } = req.body;
+    const { title, description, location, type, isAnonymous } = req.body;
     const userId = req.user._id; // From auth middleware
 
     // Validate required fields
@@ -76,6 +76,7 @@ export const createComplaint = async (req, res) => {
       type: type === 'Personal' ? 'personal' : 'general',
       attachments,
       status: 'pending',
+      isAnonymous: isAnonymous === "true",
     });
 
     // Return success response with committee information

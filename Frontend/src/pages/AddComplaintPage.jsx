@@ -16,6 +16,7 @@ export default function AddComplaintPage() {
     desc: "",
     location: "",
     type: "Public",
+    isAnonymous: false,
   });
 
   const handleChange = (e) => {
@@ -178,6 +179,8 @@ export default function AddComplaintPage() {
       formData.append("description", form.desc.trim());
       formData.append("location", form.location?.trim() || "");
       formData.append("type", form.type);
+      formData.append("isAnonymous", form.isAnonymous ? "true" : "false");
+
 
       // Append files if any
       if (files.length > 0) {
@@ -453,6 +456,28 @@ export default function AddComplaintPage() {
                 </span>
               </label>
             </div>
+          </div>
+
+          {/* Submit Anonymously */}
+          <div className="mt-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="isAnonymous"
+                checked={form.isAnonymous || false}
+                onChange={(e) =>
+                setForm((prev) => ({ ...prev, isAnonymous: e.target.checked }))
+              }
+              className="h-4 w-4 text-blue-600"
+              />
+              <span className="text-sm text-gray-700">
+                Submit Anonymously
+                <span className="text-gray-500 block text-xs mt-1">
+                Your identity will be hidden from committees and other users, 
+                but your complaint will still be processed normally.
+                </span>
+              </span>
+            </label>
           </div>
 
           {/* Error Display */}

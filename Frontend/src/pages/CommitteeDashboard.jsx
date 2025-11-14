@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Routes, Route, Link, useNavigate, NavLink } from "react-router-dom";
 import {
   FaBell,
@@ -116,7 +116,6 @@ const CommitteeSidebar = () => {
 // C2: View & manage assigned complaints
 const AssignedComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
-  const [analyticsFilter, setAnalyticsFilter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -124,6 +123,17 @@ const AssignedComplaintsPage = () => {
   const [newStatus, setNewStatus] = useState("");
   const [statusDescription, setStatusDescription] = useState("");
   const [updating, setUpdating] = useState(false);
+
+  // --- STATE FOR SEARCH, SORTING, AND FILTERING ---
+  const [sortConfig, setSortConfig] = useState(null); 
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filters, setFilters] = useState({
+    status: [], 
+    priority: [], 
+  });
+  const [tempFilters, setTempFilters] = useState(filters);
+  const [searchTerm, setSearchTerm] = useState(""); 
+  // --- END STATE ---
 
   useEffect(() => {
     fetchAssignedComplaints();
@@ -151,32 +161,7 @@ const AssignedComplaintsPage = () => {
         }
       );
 
-      // Apply analytics filter from localStorage if present (set by Analytics charts)
-      let list = data.complaints || [];
-      try {
-        const raw = localStorage.getItem('analytics_filter');
-        const f = raw ? JSON.parse(raw) : null;
-        setAnalyticsFilter(f);
-        if (f && f.type && f.value != null) {
-          if (f.type === 'category') {
-            list = list.filter((c) => c.category === f.value);
-          } else if (f.type === 'priority') {
-            list = list.filter((c) => c.priority === f.value);
-          } else if (f.type === 'status') {
-            list = list.filter((c) => c.status === f.value);
-          } else if (f.type === 'date') {
-            list = list.filter((c) => {
-              try {
-                return (new Date(c.createdAt)).toISOString().slice(0,10) === f.value;
-              } catch (e) { return false; }
-            });
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to apply analytics filter', e);
-      }
-
-      setComplaints(list);
+      setComplaints(data.complaints || []);
     } catch (err) {
       console.error("Fetch Assigned Complaints Error:", err);
       setError(
@@ -186,12 +171,6 @@ const AssignedComplaintsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const clearAnalyticsFilter = () => {
-    localStorage.removeItem('analytics_filter');
-    setAnalyticsFilter(null);
-    fetchAssignedComplaints();
   };
 
   const handleStatusUpdate = async () => {
@@ -218,10 +197,10 @@ const AssignedComplaintsPage = () => {
         }
       );
 
-      // Refresh complaints list
+    
       await fetchAssignedComplaints();
       
-      // Close modal and reset
+   
       setShowStatusModal(false);
       setSelectedComplaint(null);
       setNewStatus("");
@@ -246,6 +225,18 @@ const AssignedComplaintsPage = () => {
     setShowStatusModal(true);
   };
 
+
+  const getComplaintId = (id) => {
+    if (!id) return "N/A";
+    return `CC${id.slice(-6).toUpperCase()}`;
+  };
+
+  const getUserName = (userId) => {
+    if (!userId) return "Unknown";
+ 
+    return userId.name || "Unknown";
+  };
+  
   const getStatusBadge = (status) => {
     const statusStyles = {
       pending: "bg-yellow-100 text-yellow-800",
@@ -253,6 +244,10 @@ const AssignedComplaintsPage = () => {
       resolved: "bg-green-100 text-green-800",
       rejected: "bg-red-100 text-red-800",
     };
+
+    if (!status) return (
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800`}>N/A</span>
+    );
 
     return (
       <span
@@ -271,6 +266,11 @@ const AssignedComplaintsPage = () => {
       Medium: "bg-yellow-100 text-yellow-800",
       Low: "bg-green-100 text-green-800",
     };
+
+    if (!priority) return (
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800`}>N/A</span>
+    );
+
 
     return (
       <span
@@ -295,16 +295,125 @@ const AssignedComplaintsPage = () => {
     });
   };
 
-  const getComplaintId = (id) => {
-    if (!id) return "N/A";
-    return `CC${id.slice(-6).toUpperCase()}`;
+  const getSortLabel = () => {
+    if (!sortConfig) return "Sort By";
+    
+    if (sortConfig.key === "priority" && sortConfig.direction === "ascending") {
+        return "Priority: Low ↓";
+    }
+    if (sortConfig.key === "priority" && sortConfig.direction === "descending") {
+        return "Priority: High ↑";
+    }
+    if (sortConfig.key === "createdAt" && sortConfig.direction === "ascending") {
+        return "Date: Oldest ↓";
+    }
+    if (sortConfig.key === "createdAt" && sortConfig.direction === "descending") {
+        return "Date: Newest ↑";
+    }
+
+    return "Sort By";
+  };
+  
+  const sortComplaints = (key, newDirection) => {
+    setSortConfig({ key, direction: newDirection });
   };
 
-  const getUserName = (userId) => {
-    if (!userId) return "Unknown";
-    return userId.name || "Unknown";
+  const sortedAndFilteredComplaints = useMemo(() => {
+    let processableComplaints = [...complaints];
+
+
+    if (searchTerm) {
+      const lowerCaseSearch = searchTerm.toLowerCase().trim();
+      const searchWords = lowerCaseSearch.split(/\s+/).filter(word => word.length > 0);
+
+      processableComplaints = processableComplaints.filter(c => {
+        if (!c) return false;
+        
+       
+        const title = (c.title || "").toLowerCase();
+        const category = (c.category || "").toLowerCase();
+        const complaintId = getComplaintId(c._id).toLowerCase();
+        const userName = (c.userId?.name || "").toLowerCase();
+        
+ 
+        const directMatch = 
+          title.includes(lowerCaseSearch) ||
+          category.includes(lowerCaseSearch) ||
+          complaintId.includes(lowerCaseSearch);
+
+        if (directMatch) return true;
+        
+  
+        if (searchWords.length > 0) {
+            const wordMatch = searchWords.every(word => userName.includes(word));
+            if (wordMatch) return true;
+        }
+
+        return false;
+      });
+    }
+
+    if (filters.status.length > 0) {
+      processableComplaints = processableComplaints.filter(c => c && filters.status.includes(c.status));
+    }
+    if (filters.priority.length > 0) {
+      processableComplaints = processableComplaints.filter(c => c && filters.priority.includes(c.priority));
+    }
+
+  
+    if (sortConfig && sortConfig.key) {
+      processableComplaints.sort((a, b) => {
+        if (!a) return sortConfig.direction === "ascending" ? 1 : -1;
+        if (!b) return sortConfig.direction === "ascending" ? -1 : 1;
+        
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+
+        if (sortConfig.key === "priority") {
+          const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+          aVal = priorityOrder[aVal] || 0;
+          bVal = priorityOrder[bVal] || 0;
+        }
+        
+        if (aVal == null) return sortConfig.direction === "ascending" ? 1 : -1;
+        if (bVal == null) return sortConfig.direction === "ascending" ? -1 : 1;
+
+        if (aVal < bVal) {
+          return sortConfig.direction === "ascending" ? -1 : 1;
+        }
+        if (aVal > bVal) {
+          return sortConfig.direction === "ascending" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return processableComplaints;
+  }, [complaints, sortConfig, filters, searchTerm]);
+
+  const handleFilterChange = (filterType, value, isChecked) => {
+    setTempFilters(prev => {
+      const currentValues = prev[filterType];
+      if (isChecked) {
+        return { ...prev, [filterType]: [...currentValues, value] };
+      } else {
+        return { ...prev, [filterType]: currentValues.filter(v => v !== value) };
+      }
+    });
   };
 
+  const applyFilters = () => {
+    setFilters(tempFilters);
+    setShowFilterModal(false);
+  };
+
+  const clearFilters = () => {
+    const defaultFilters = { status: [], priority: [] };
+    setFilters(defaultFilters);
+    setTempFilters(defaultFilters);
+    setShowFilterModal(false);
+  };
+ 
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -332,41 +441,94 @@ const AssignedComplaintsPage = () => {
       </div>
     );
   }
-
+ 
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Assigned Complaints</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Complaints assigned to your committee
+            Showing: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
           </p>
         </div>
-        <button
-          onClick={fetchAssignedComplaints}
-          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-        >
-          Refresh
-        </button>
+        
+
+        <div className="flex gap-3 items-center">
+     
+            <div className="relative">
+                <input
+                    type="text"
+                    placeholder="Search complaints..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 w-48 sm:w-64"
+                />
+                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            
+           
+            <div className="relative">
+                <select
+                    value={sortConfig ? `${sortConfig.key}-${sortConfig.direction}` : ""}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (value) {
+                            const [key, direction] = value.split('-');
+                            sortComplaints(key, direction);
+                        } else {
+                            setSortConfig(null);
+                        }
+                    }}
+                    className="px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium cursor-pointer"
+                >
+                    <option value="" className="text-gray-500">{getSortLabel()}</option>
+                    <option value="priority-descending">Priority: High to Low</option>
+                    <option value="priority-ascending">Priority: Low to High</option>
+                    <option value="createdAt-descending">Date: New to Old</option>
+                    <option value="createdAt-ascending">Date: Old to New</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+            </div>
+
+     
+            <button
+                onClick={() => {
+                    setTempFilters(filters);
+                    setShowFilterModal(true);
+                }}
+                className={`flex items-center space-x-1 px-3 py-2 text-sm rounded-lg shadow-sm font-medium transition-colors border ${
+                    (filters.status.length > 0 || filters.priority.length > 0)
+                        ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+            >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd"></path>
+                </svg>
+                { (filters.status.length > 0 || filters.priority.length > 0) && (
+                    <span className={`text-xs font-bold ${ (filters.status.length > 0 || filters.priority.length > 0) ? 'text-white' : 'text-blue-600'}`}>
+                        ({filters.status.length + filters.priority.length})
+                    </span>
+                )}
+            </button>
+
+            <button
+              onClick={fetchAssignedComplaints}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Refresh
+            </button>
+        </div>
       </div>
 
-      {analyticsFilter && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-blue-700">
-              Filter applied: <strong className="text-gray-800">{analyticsFilter.type}</strong> = <span className="font-mono">{analyticsFilter.value}</span>
-            </div>
-            <div>
-              <button onClick={clearAnalyticsFilter} className="text-sm text-blue-600 hover:underline">Clear Filter</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {complaints.length === 0 ? (
+      {sortedAndFilteredComplaints.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg mb-4">
-            No complaints have been assigned to your committee yet.
+            No complaints found matching current criteria.
           </p>
         </div>
       ) : (
@@ -386,7 +548,7 @@ const AssignedComplaintsPage = () => {
                 <th className="p-3 text-sm font-semibold text-gray-600">
                   Priority
                 </th>
-                <th className="p-3 text-sm font-semibold text-gray-600 w-36">
+                <th className="p-3 text-sm font-semibold text-gray-600">
                   Status
                 </th>
                 <th className="p-3 text-sm font-semibold text-gray-600">
@@ -401,31 +563,36 @@ const AssignedComplaintsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {complaints.map((complaint) => (
+              {sortedAndFilteredComplaints.map((complaint) => (
                 <tr
-                  key={complaint._id}
+                  key={complaint?._id || Math.random()}
                   className="border-b hover:bg-gray-50 transition-colors"
                 >
                   <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint._id)}
+                    {getComplaintId(complaint?._id)}
                   </td>
                   <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {complaint.title}
+                    {/* CRASH FIX: Optional chaining used here */}
+                    {complaint?.title}
                   </td>
                   <td className="p-3 text-gray-700 text-sm text-center">
-                    {complaint.upvoteCount || complaint.upvotes?.length || 0}
+                    {/* CRASH FIX: Optional chaining used here */}
+                    {complaint?.upvoteCount || complaint?.upvotes?.length || 0}
                   </td>
-                  <td className="p-3">{getPriorityBadge(complaint.priority)}</td>
-                  <td className="p-3 whitespace-nowrap">{getStatusBadge(complaint.status)}</td>
+                  <td className="p-3">{getPriorityBadge(complaint?.priority)}</td>
+                  <td className="p-3">{getStatusBadge(complaint?.status)}</td>
                   <td className="p-3 text-gray-600 text-sm">
-                    {getUserName(complaint.userId)}
+                    {/* CRASH FIX: Optional chaining used here */}
+                    {getUserName(complaint?.userId)}
                   </td>
                   <td className="p-3 text-gray-600 text-sm">
-                    {formatDate(complaint.createdAt)}
+                    {/* CRASH FIX: Optional chaining used here */}
+                    {formatDate(complaint?.createdAt)}
                   </td>
                   <td className="p-3">
                     <button
-                      onClick={() => openStatusModal(complaint)}
+                      // CRASH FIX: Ensure complaint object is safe before passing to modal
+                      onClick={() => complaint && openStatusModal(complaint)}
                       className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                     >
                       Update Status
@@ -438,7 +605,6 @@ const AssignedComplaintsPage = () => {
         </div>
       )}
 
-      {/* Status Update Modal */}
       {showStatusModal && selectedComplaint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
@@ -500,6 +666,86 @@ const AssignedComplaintsPage = () => {
                 }}
                 disabled={updating}
                 className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      {showFilterModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 border-b pb-2">
+              Filter Complaints
+            </h2>
+
+            <div className="space-y-6">
+              {/* Filter by Status */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                  Complaint Status
+                </h3>
+                <div className="flex flex-wrap gap-4">
+                  {["pending", "in-progress", "resolved", "rejected"].map((status) => (
+                    <label key={status} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tempFilters.status.includes(status)}
+                        onChange={(e) =>
+                          handleFilterChange("status", status, e.target.checked)
+                        }
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                      />
+                      <span className="text-gray-700 text-sm">
+                        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Filter by Priority */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                  Priority
+                </h3>
+                <div className="flex flex-wrap gap-4">
+                  {["High", "Medium", "Low"].map((priority) => (
+                    <label key={priority} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tempFilters.priority.includes(priority)}
+                        onChange={(e) =>
+                          handleFilterChange("priority", priority, e.target.checked)
+                        }
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                      />
+                      <span className="text-gray-700 text-sm">{priority}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8 pt-4 border-t">
+              <button
+                onClick={applyFilters}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+              >
+                Apply Filters
+              </button>
+              <button
+                onClick={clearFilters}
+                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
+              >
+                Clear Filters
+              </button>
+              <button
+                onClick={() => setShowFilterModal(false)}
+                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300"
               >
                 Cancel
               </button>

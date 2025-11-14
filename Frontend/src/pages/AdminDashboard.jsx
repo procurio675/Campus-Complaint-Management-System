@@ -1,9 +1,24 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
+import { Routes, Route, Link, useNavigate, Navigate, useLocation } from "react-router-dom";
 import { FaBell, FaUserCircle, FaChevronDown } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  CartesianGrid,
+  Legend,
+} from 'recharts';
 
 import AdminSidebar from "../components/AdminSidebar";
 import ProfilePage from "./ProfilePage";
@@ -1009,96 +1024,478 @@ const AllComplaintsPage = () => {
 };
 
 
-const AnalyticsPage = () => (
-  <div className="bg-white p-6 rounded-xl shadow-lg">
-    <h1 className="text-2xl font-bold text-gray-800">Committee Analytics</h1>
-    <p className="mt-4 text-gray-600">
-      A visual overview of complaint trends, committee performance, and system statistics.
-    </p>
+const AnalyticsPage = () => {
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+  const [topStats, setTopStats] = React.useState({
+    total: 0,
+    resolved: 0,
+    avgResolutionDays: 0,
+    pending: 0,
+    monthDeltaPct: null,
+  });
+  const [committeeStats, setCommitteeStats] = React.useState([]);
 
-    {/* Quick Stats */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-      <div className="p-6 bg-blue-50 rounded-xl">
-        <h2 className="font-semibold text-lg">Total Complaints</h2>
-        <p className="text-3xl font-bold text-blue-700 mt-2">1,248</p>
-        <p className="text-sm text-gray-600 mt-1">+12% from last month</p>
+  const committeeNameMap = {
+    Canteen: "Cafeteria Management Committee",
+    Hostel: "Hostel Management Committee",
+    Academic: "Academic Committee",
+    Sports: "Sports Committee",
+    Tech: "Tech-Support Committee",
+    'Internal Complaints': "Internal Complaints Committee",
+    'Annual Fest': "Annual Fest Committee",
+    Cultural: "Cultural Committee",
+    Placement: "Student Placement Cell",
+    // legacy / alternate keys
+    "Anti-Ragging": "Internal Complaints Committee",
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+    // No automatic refresh — user must press Refresh button
+  }, []);
+
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem('ccms_token');
+      if (!token) throw new Error('Missing auth token');
+
+      const { data } = await axios.get(`${API_BASE_URL}/complaints/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const complaints = data.complaints || [];
+
+      const total = complaints.length;
+      const resolved = complaints.filter(c => c.status === 'resolved').length;
+      const pending = complaints.filter(c => c.status === 'pending').length;
+
+      // average resolution time in days
+      const resolvedTimes = complaints.map((c) => {
+        try {
+          // find resolved timestamp from statusHistory or updatedAt
+          let resolvedAt = null;
+          if (Array.isArray(c.statusHistory)) {
+            const found = c.statusHistory.find(s => s && s.status === 'resolved');
+            if (found && found.updatedAt) resolvedAt = new Date(found.updatedAt);
+          }
+          if (!resolvedAt && c.status === 'resolved' && c.updatedAt) resolvedAt = new Date(c.updatedAt);
+          if (resolvedAt && c.createdAt) {
+            const created = new Date(c.createdAt);
+            return (resolvedAt - created) / (1000*60*60*24);
+          }
+        } catch (e) { }
+        return null;
+      }).filter(v => v != null && !isNaN(v));
+
+      const avgResolutionDays = resolvedTimes.length ? (resolvedTimes.reduce((a,b)=>a+b,0)/resolvedTimes.length) : 0;
+
+      // month-over-month delta for total complaints (simple)
+      const now = new Date();
+      const currMonth = now.getMonth();
+      const currYear = now.getFullYear();
+      const prev = new Date(now.getFullYear(), now.getMonth()-1, 1);
+      const prevMonth = prev.getMonth();
+      const prevYear = prev.getFullYear();
+
+      const countThisMonth = complaints.filter(c => {
+        try { const d = new Date(c.createdAt); return d.getMonth()===currMonth && d.getFullYear()===currYear; } catch(e){ return false; }
+      }).length;
+      const countPrevMonth = complaints.filter(c => {
+        try { const d = new Date(c.createdAt); return d.getMonth()===prevMonth && d.getFullYear()===prevYear; } catch(e){ return false; }
+      }).length;
+      const monthDeltaPct = countPrevMonth === 0 ? null : Math.round(((countThisMonth - countPrevMonth)/countPrevMonth)*100);
+
+      // group by category/committee
+      // Only include committees that are registered in the backend (canonical list)
+      const registeredCommittees = [
+        'Canteen',
+        'Hostel',
+        'Sports',
+        'Tech',
+        'Academic',
+        'Internal Complaints',
+        'Annual Fest',
+        'Cultural',
+        'Placement',
+      ];
+
+      const group = {};
+      for (const c of complaints) {
+        const raw = (c.category || '').toString().trim();
+        if (!raw) continue;
+
+        // Try to resolve the complaint's category to one of the registered committee keys.
+        let matchedKey = null;
+        for (const key of registeredCommittees) {
+          // Exact match (most common)
+          if (raw === key) {
+            matchedKey = key;
+            break;
+          }
+          // Some stored values may use display names like "Hostel Management" or "Cafeteria"
+          const display = committeeNameMap[key] || key;
+          if (raw === display) {
+            matchedKey = key;
+            break;
+          }
+          // Loose contains match (case-insensitive)
+          if (raw.toLowerCase().includes(key.toLowerCase()) || display.toLowerCase().includes(raw.toLowerCase())) {
+            matchedKey = key;
+            break;
+          }
+        }
+
+        // If we couldn't match this complaint's category to a registered committee, skip it.
+        if (!matchedKey) continue;
+
+        const mapped = committeeNameMap[matchedKey] || matchedKey;
+        // store by canonical key but include display name
+        if (!group[matchedKey]) group[matchedKey] = { committeeKey: matchedKey, committee: mapped, total: 0, resolved: 0, pending: 0 };
+        group[matchedKey].total += 1;
+        if (c.status === 'resolved') group[matchedKey].resolved += 1;
+        if (c.status === 'pending') group[matchedKey].pending += 1;
+      }
+
+      const committeeArr = Object.values(group).map(item => ({
+        ...item,
+        resolutionRate: item.total ? Math.round((item.resolved / item.total)*100) : 0,
+      })).sort((a,b) => b.total - a.total);
+
+      setTopStats({ total, resolved, avgResolutionDays: Number(avgResolutionDays.toFixed(1)), pending, monthDeltaPct, monthCount: countThisMonth });
+      setCommitteeStats(committeeArr);
+    } catch (err) {
+      console.error('Fetch analytics failed', err);
+      setError(err?.response?.data?.message || err.message || 'Failed to fetch analytics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <h1 className="text-2xl font-bold text-gray-800">Committee Analytics</h1>
+      <div className="flex items-center justify-center py-12 text-gray-500">Loading analytics...</div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <h1 className="text-2xl font-bold text-gray-800">Committee Analytics</h1>
+      <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">{error}</div>
+    </div>
+  );
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Committee Analytics</h1>
+          <p className="mt-2 text-gray-600">A visual overview of complaint trends, committee performance, and system statistics.</p>
+        </div>
+        <div>
+          <button onClick={fetchAnalytics} className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm hover:bg-gray-50">Refresh</button>
+        </div>
       </div>
 
-      <div className="p-6 bg-green-50 rounded-xl">
-        <h2 className="font-semibold text-lg">Resolved Complaints</h2>
-        <p className="text-3xl font-bold text-green-700 mt-2">982</p>
-        <p className="text-sm text-gray-600 mt-1">78% resolution rate</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+        <div className="p-6 bg-blue-50 rounded-xl">
+          <h2 className="font-semibold text-lg">Total Complaints</h2>
+          <p className="text-3xl font-bold text-blue-700 mt-2">{topStats.total}</p>
+          <p className="text-sm text-gray-600 mt-1">{topStats.monthCount} in current month</p>
+        </div>
+
+        <div className="p-6 bg-green-50 rounded-xl">
+          <h2 className="font-semibold text-lg">Resolved Complaints</h2>
+          <p className="text-3xl font-bold text-green-700 mt-2">{topStats.resolved}</p>
+          <p className="text-sm text-gray-600 mt-1">{topStats.total?`${Math.round((topStats.resolved/topStats.total)*100)}% resolution rate`:'—'}</p>
+        </div>
+
+        <div className="p-6 bg-yellow-50 rounded-xl">
+          <h2 className="font-semibold text-lg">Avg. Resolution Time</h2>
+          <p className="text-3xl font-bold text-yellow-700 mt-2">{topStats.avgResolutionDays} days</p>
+        </div>
+
+        <div className="p-6 bg-purple-50 rounded-xl">
+          <h2 className="font-semibold text-lg">Pending Complaints</h2>
+          <p className="text-3xl font-bold text-purple-700 mt-2">{topStats.pending}</p>
+        </div>
       </div>
 
-      <div className="p-6 bg-yellow-50 rounded-xl">
-        <h2 className="font-semibold text-lg">Avg. Resolution Time</h2>
-        <p className="text-3xl font-bold text-yellow-700 mt-2">3.4 days</p>
-      </div>
-
-      <div className="p-6 bg-purple-50 rounded-xl">
-        <h2 className="font-semibold text-lg">Pending Complaints</h2>
-        <p className="text-3xl font-bold text-purple-700 mt-2">266</p>
+      <div className="mt-10">
+        <h2 className="font-semibold text-lg text-gray-800 mb-3">Committee-wise Analytics</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="bg-gray-100 text-gray-700">
+                <th className="p-3 border">Committee</th>
+                <th className="p-3 border">Total Complaints</th>
+                <th className="p-3 border">Resolved</th>
+                <th className="p-3 border">Pending</th>
+                <th className="p-3 border">Resolution Rate</th>
+                <th className="p-3 border">View Analytics</th>
+              </tr>
+            </thead>
+            <tbody>
+              {committeeStats.map((r) => (
+                <tr key={r.committee}>
+                  <td className="p-3 border">{r.committee}</td>
+                  <td className="p-3 border">{r.total}</td>
+                  <td className="p-3 border">{r.resolved}</td>
+                  <td className="p-3 border">{r.pending}</td>
+                  <td className="p-3 border">{r.resolutionRate}%</td>
+                  <td className="p-3 border">
+                      <Link
+                        to={`/admin-dashboard/committee-analytics?ct=${encodeURIComponent(r.committeeKey)}`}
+                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                      >
+                        View
+                      </Link>
+                  </td>
+                </tr>
+              ))}
+              {committeeStats.length === 0 && (
+                <tr>
+                  <td className="p-3 border" colSpan={5}>No data available</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+  );
+};
 
-    {/* Department Breakdown */}
-    <div className="mt-10">
-      <h2 className="font-semibold text-lg text-gray-800 mb-3">
-        Committee-wise Analytics
-      </h2>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700">
-              <th className="p-3 border">Committee</th>
-              <th className="p-3 border">Total Complaints</th>
-              <th className="p-3 border">Resolved</th>
-              <th className="p-3 border">Pending</th>
-              <th className="p-3 border">Resolution Rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="p-3 border">Academic Committee</td>
-              <td className="p-3 border">312</td>
-              <td className="p-3 border">287</td>
-              <td className="p-3 border">25</td>
-              <td className="p-3 border">92%</td>
-            </tr>
-            <tr>
-              <td className="p-3 border">Hostel Management</td>
-              <td className="p-3 border">205</td>
-              <td className="p-3 border">164</td>
-              <td className="p-3 border">41</td>
-              <td className="p-3 border">80%</td>
-            </tr>
-            <tr>
-              <td className="p-3 border">Cafeteria</td>
-              <td className="p-3 border">178</td>
-              <td className="p-3 border">132</td>
-              <td className="p-3 border">46</td>
-              <td className="p-3 border">74%</td>
-            </tr>
-            <tr>
-              <td className="p-3 border">Sports Committee</td>
-              <td className="p-3 border">123</td>
-              <td className="p-3 border">108</td>
-              <td className="p-3 border">15</td>
-              <td className="p-3 border">88%</td>
-            </tr>
-            <tr>
-              <td className="p-3 border">Anti-Ragging</td>
-              <td className="p-3 border">56</td>
-              <td className="p-3 border">56</td>
-              <td className="p-3 border">0</td>
-              <td className="p-3 border">100%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+// Admin-only view for a single committee's analytics.
+const AdminCommitteeAnalytics = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [metrics, setMetrics] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
+
+  // read committee type from query param `ct`
+  let committeeType = null;
+  try {
+    const params = new URLSearchParams(location.search);
+    committeeType = params.get('ct') || null;
+  } catch (e) {
+    committeeType = null;
+  }
+
+  const fetchMetrics = async () => {
+    if (!committeeType) {
+      setError('No committee selected');
+      return;
+    }
+    const token = localStorage.getItem('ccms_token');
+    if (!token) {
+      setError('Missing auth token. Please login again.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      const url = `${API_BASE_URL}/committee-analytics/${encodeURIComponent(committeeType)}`;
+      const { data } = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+
+      const normalized = {
+        total: Number(data.total) || 0,
+        resolved: Number(data.resolved) || 0,
+        avgResolutionTimeDays: data.avgResolutionTimeDays == null ? 0 : Number(data.avgResolutionTimeDays),
+        resolutionRate: data.resolutionRate == null ? 0 : Number(data.resolutionRate),
+      };
+      setMetrics(normalized);
+
+      // normalize analytics data
+      let subArr = [];
+      if (data.subcategoryCounts && typeof data.subcategoryCounts === 'object' && !Array.isArray(data.subcategoryCounts)) {
+        subArr = Object.keys(data.subcategoryCounts).map(k => ({ category: k, count: data.subcategoryCounts[k] }));
+      } else if (Array.isArray(data.categoryCounts)) {
+        subArr = data.categoryCounts;
+      }
+
+      setAnalyticsData({
+        subcategoryCounts: subArr,
+        priorityCounts: data.priorityCounts || { High: 0, Medium: 0, Low: 0 },
+        statusCounts: data.statusCounts || { pending: 0, 'in-progress': 0, resolved: 0 },
+        dailyCounts30Days: data.dailyCounts30Days || [],
+      });
+    } catch (err) {
+      console.error('Admin committee analytics fetch failed', err);
+      setError(err?.response?.data?.message || 'Failed to load committee analytics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!committeeType) return;
+    fetchMetrics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [committeeType]);
+
+  const handleChartClick = (type, value) => {
+    try {
+      localStorage.setItem('analytics_filter', JSON.stringify({ type, value }));
+      navigate('/admin-dashboard/all-complaints');
+    } catch (e) {
+      console.warn('Failed to apply chart filter', e);
+    }
+  };
+
+  const formatDays = (d) => (d == null ? "—" : `${Number(d).toFixed(1)} days`);
+  const formatPct = (p) => (p == null ? "—" : `${Number(p).toFixed(0)}%`);
+
+  if (loading) return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <h1 className="text-2xl font-bold text-gray-800">{committeeType || 'Committee'} Analytics</h1>
+      <div className="flex items-center justify-center py-12 text-gray-500">Loading analytics...</div>
     </div>
-  </div>
-);
+  );
+
+  if (error) return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <h1 className="text-2xl font-bold text-gray-800">{committeeType || 'Committee'} Analytics</h1>
+      <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">{error}</div>
+    </div>
+  );
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">{committeeType || 'Committee'} Analytics</h1>
+          <p className="mt-2 text-gray-600">Overview of complaints handled by this committee.</p>
+        </div>
+        <div>
+          <button onClick={fetchMetrics} className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm hover:bg-gray-50">Refresh</button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-blue-50 border-blue-500">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-blue-700">Total Complaints</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? metrics.total : '—'}</p>
+        </div>
+
+        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-green-50 border-green-500">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-green-700">Resolved</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? metrics.resolved : '—'}</p>
+        </div>
+
+        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-yellow-50 border-yellow-500">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-yellow-700">Avg. Resolution Time</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? formatDays(metrics.avgResolutionTimeDays) : '—'}</p>
+        </div>
+
+        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-purple-50 border-purple-500">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-purple-700">Resolution Rate</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? formatPct(metrics.resolutionRate) : '—'}</p>
+        </div>
+      </div>
+
+      {analyticsData && (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Category Breakdown</h3>
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer>
+                <BarChart data={(analyticsData.subcategoryCounts || []).filter(d => d.count > 0)}>
+                  <XAxis dataKey="category" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count">
+                    {(analyticsData.subcategoryCounts || []).filter(d => d.count > 0).map((entry, idx) => (
+                      <Cell key={`cell-${idx}`} onClick={() => handleChartClick('category', entry.category)} fill={"#4F46E5"} cursor="pointer" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Priority Breakdown</h3>
+            <div className="flex items-center gap-4">
+              <div style={{ width: '100%', height: 220 }} className="flex-1">
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'High', value: analyticsData.priorityCounts.High || 0 },
+                        { name: 'Medium', value: analyticsData.priorityCounts.Medium || 0 },
+                        { name: 'Low', value: analyticsData.priorityCounts.Low || 0 },
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={80}
+                      innerRadius={40}
+                      onClick={(e) => e && handleChartClick('priority', e.name)}
+                      cursor="pointer"
+                    >
+                      <Cell fill="#DC2626" />
+                      <Cell fill="#F59E0B" />
+                      <Cell fill="#10B981" />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="w-48">
+                <div className="flex flex-col gap-2">
+                  {[
+                    { label: 'High', color: '#DC2626', value: analyticsData.priorityCounts.High || 0 },
+                    { label: 'Medium', color: '#F59E0B', value: analyticsData.priorityCounts.Medium || 0 },
+                    { label: 'Low', color: '#10B981', value: analyticsData.priorityCounts.Low || 0 },
+                  ].map((item) => (
+                    item.value > 0 && (
+                      <div key={item.label} className="flex items-center gap-2">
+                          <span style={{ width: 12, height: 12, background: item.color, borderRadius: 4, display: 'inline-block' }} />
+                          <span className="text-sm text-gray-700">{item.label} :</span>
+                          <span className="ml-auto font-bold">{item.value}</span>
+                        </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow md:col-span-2">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Last 30 Days Trend</h3>
+            <div style={{ width: '100%', height: 260 }}>
+              <ResponsiveContainer>
+                <LineChart data={analyticsData.dailyCounts30Days} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" stroke="#4F46E5" dot={{ r: 2 }} onClick={(d) => { if (d && d.activePayload && d.activePayload[0]) handleChartClick('date', d.activePayload[0].payload.date); }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 
 const generalComplaintsData = [
@@ -1325,6 +1722,7 @@ export default function AdminDashboard() {
             <Route path="all-complaints" element={<AllComplaintsPage />} />
             <Route path="general-complaints" element={<GeneralComplaintsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="committee-analytics" element={<AdminCommitteeAnalytics />} />
             <Route path="profile" element={<ProfilePage />} />
             
             {/* <--- 2. ROUTE ADDED ---> */}

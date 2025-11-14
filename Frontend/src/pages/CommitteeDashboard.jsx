@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Routes, Route, Link, useNavigate, NavLink } from "react-router-dom";
+import { Routes, Route, Link, useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   FaBell,
   FaUserCircle,
@@ -849,12 +849,15 @@ const AnalyticsDashboardPage = () => {
   const [error, setError] = useState("");
   const [analyticsData, setAnalyticsData] = useState(null);
 
-  // read committeeType from stored user
+  // read committeeType from query param `ct` (admin navigation) or stored user
+  const location = useLocation();
   let committeeType = null;
   try {
     const u = typeof window !== 'undefined' ? localStorage.getItem('ccms_user') : null;
     const parsed = u ? JSON.parse(u) : null;
-    committeeType = parsed?.committeeType || parsed?.committee || null;
+    const params = typeof window !== 'undefined' ? new URLSearchParams(location.search) : null;
+    const queryCt = params ? params.get('ct') : null;
+    committeeType = queryCt || parsed?.committeeType || parsed?.committee || null;
   } catch (e) {
     committeeType = null;
   }
@@ -989,7 +992,7 @@ const AnalyticsDashboardPage = () => {
     }
   };
 
-  // On mount: load cache immediately, then fetch fresh in background
+  // On mount and whenever the selected committeeType changes: load cache, then fetch fresh
   useEffect(() => {
     if (!committeeType) {
       setError("Committee type not found in profile.");
@@ -1012,8 +1015,7 @@ const AnalyticsDashboardPage = () => {
     fetchComplaintsList();
     // fetch analytics (charts)
     fetchAnalyticsData({ showLoading: !cached });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [committeeType]);
 
   const handleRefresh = () => fetchMetrics({ showLoading: true });
 
@@ -1137,23 +1139,7 @@ const AnalyticsDashboardPage = () => {
         </div>
       </div>
 
-      <div className="mt-6 text-sm text-gray-500">
-        {metrics && (
-          <span>
-            Last fetched: {
-              (() => {
-                try {
-                  const raw = localStorage.getItem(CACHE_KEY);
-                  const obj = raw ? JSON.parse(raw) : {};
-                  const entry = obj?.[committeeType];
-                  if (entry?.fetchedAt) return new Date(entry.fetchedAt).toLocaleString();
-                } catch (e) {}
-                return 'Now';
-              })()
-            }
-          </span>
-        )}
-      </div>
+      
       {/* Charts: Category, Priority, Status, Last 30 Days Trend */}
       {analyticsData && (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1239,8 +1225,24 @@ const AnalyticsDashboardPage = () => {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <p className="mt-2 text-xs text-gray-500">Click a point to filter assigned complaints by that date.</p>
           </div>
+          <div className="mt-6 text-sm text-gray-500">
+          {metrics && (
+            <span>
+              Last fetched: {
+                (() => {
+                  try {
+                    const raw = localStorage.getItem(CACHE_KEY);
+                    const obj = raw ? JSON.parse(raw) : {};
+                    const entry = obj?.[committeeType];
+                    if (entry?.fetchedAt) return new Date(entry.fetchedAt).toLocaleString();
+                  } catch (e) {}
+                  return 'Now';
+                })()
+              }
+            </span>
+          )}
+        </div>
         </div>
       )}
     </div>

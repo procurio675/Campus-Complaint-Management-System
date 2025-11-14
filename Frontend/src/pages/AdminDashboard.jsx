@@ -867,7 +867,7 @@ const AllComplaintsPage = () => {
               </div>
               <div>
   <h3 className="text-lg font-semibold text-gray-700 mb-3">
-    Committee/Category
+    Committee
   </h3>
   <div className="flex flex-wrap gap-4">
     {[...new Set(complaints.map(c => c.category).filter(c => c))]

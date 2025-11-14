@@ -246,10 +246,10 @@ const AssignedComplaintsPage = () => {
   
   const getStatusBadge = (status) => {
     const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      "in-progress": "bg-blue-100 text-blue-800",
-      resolved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
+      pending: "bg-yellow-50 text-yellow-700",
+      "in-progress": "bg-blue-50 text-blue-700",
+      resolved: "bg-green-50 text-green-700",
+      rejected: "bg-gray-100 text-gray-800",
     };
 
     if (!status) return (
@@ -258,7 +258,7 @@ const AssignedComplaintsPage = () => {
 
     return (
       <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
           statusStyles[status] || "bg-gray-100 text-gray-800"
         }`}
       >
@@ -607,7 +607,7 @@ const AssignedComplaintsPage = () => {
                       </button>
                       <button
                         onClick={() => complaint && openViewModal(complaint)}
-                        className="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300"
+                        className="px-3 py-1 bg-white border border-gray-200 text-blue-600 text-sm rounded hover:bg-gray-50"
                       >
                         View
                       </button>
@@ -693,38 +693,45 @@ const AssignedComplaintsPage = () => {
       {showViewModal && selectedComplaint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-3xl overflow-y-auto max-h-[90vh]">
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-4 border-b pb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-800">Complaint Details</h2>
-                <p className="text-sm text-gray-600 mt-1">ID: {getComplaintId(selectedComplaint._id)}</p>
+                <h2 className="text-2xl font-bold text-blue-700">Complaint Details</h2>
+                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-medium text-gray-700">{getComplaintId(selectedComplaint._id)}</span></p>
               </div>
               <div>
                 <button
                   onClick={() => { setShowViewModal(false); setSelectedComplaint(null); }}
-                  className="text-sm text-gray-600 hover:text-gray-800"
+                  className="text-sm text-gray-500 hover:text-blue-700 transition-colors"
                 >
                   Close
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
               <div>
-                <h3 className="text-sm font-semibold text-gray-700">Title</h3>
+                <h3 className="text-sm font-semibold text-gray-600">Title</h3>
                 <p className="text-gray-800 mb-3">{selectedComplaint.title}</p>
 
-                <h3 className="text-sm font-semibold text-gray-700">Description</h3>
+                <h3 className="text-sm font-semibold text-gray-600">Description</h3>
                 <p className="text-gray-700 mb-3 whitespace-pre-line">{selectedComplaint.description}</p>
 
                 <div className="flex flex-wrap gap-3 mt-2">
-                  <div className="text-sm text-gray-600"><strong>Status:</strong> {selectedComplaint.status}</div>
-                  <div className="text-sm text-gray-600"><strong>Priority:</strong> {selectedComplaint.priority || 'N/A'}</div>
-                  <div className="text-sm text-gray-600"><strong>Filed By:</strong> {selectedComplaint.userId?.name || 'Anonymous'}</div>
+                    <div className="text-sm text-gray-600 flex items-center gap-2">
+                      <strong>Status:</strong>
+                      <span>{getStatusBadge(selectedComplaint.status)}</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <strong>Priority:</strong> {selectedComplaint.priority || 'N/A'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <strong>Filed By:</strong> {selectedComplaint.userId?.name || 'Anonymous'}
+                    </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-gray-700">Attachments</h3>
+                <h3 className="text-sm font-semibold text-gray-600">Attachments</h3>
                 <div className="mt-2 space-y-3">
                   {(selectedComplaint.attachments || []).length === 0 && (
                     <p className="text-gray-500">No attachments uploaded.</p>
@@ -1320,15 +1327,15 @@ const CommitteeDashboardHome = () => {
 
   const getStatusBadge = (status) => {
     const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      "in-progress": "bg-blue-100 text-blue-800",
-      resolved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
+      pending: "bg-yellow-50 text-yellow-700",
+      "in-progress": "bg-blue-50 text-blue-700",
+      resolved: "bg-green-50 text-green-700",
+      rejected: "bg-gray-100 text-gray-800",
     };
 
     return (
       <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
           statusStyles[status] || "bg-gray-100 text-gray-800"
         }`}
       >
@@ -1519,9 +1526,6 @@ const CommitteeDashboardHome = () => {
                 <th className="p-3 text-sm font-semibold text-gray-600">
                   Date
                 </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Action
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -1545,7 +1549,6 @@ const CommitteeDashboardHome = () => {
                       to={`/committee-dashboard/complaint/${complaint._id}`}
                       className="text-blue-600 font-medium hover:underline text-sm"
                     >
-                      View
                     </Link>
                   </td>
                 </tr>

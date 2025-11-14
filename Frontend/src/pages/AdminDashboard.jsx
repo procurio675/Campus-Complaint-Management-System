@@ -91,15 +91,15 @@ const AdminDashboardHome = () => {
 
   const getStatusBadge = (status) => {
     const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      "in-progress": "bg-blue-100 text-blue-800",
-      resolved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
+      pending: "bg-yellow-50 text-yellow-700",
+      "in-progress": "bg-blue-50 text-blue-700",
+      resolved: "bg-green-50 text-green-700",
+      rejected: "bg-gray-100 text-gray-800",
     };
 
     return (
       <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
           statusStyles[status] || "bg-gray-100 text-gray-800"
         }`}
       >
@@ -544,15 +544,15 @@ const AllComplaintsPage = () => {
 
   const getStatusBadge = (status) => {
     const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      "in-progress": "bg-blue-100 text-blue-800",
-      resolved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
+      pending: "bg-yellow-50 text-yellow-700",
+      "in-progress": "bg-blue-50 text-blue-700",
+      resolved: "bg-green-50 text-green-700",
+      rejected: "bg-gray-100 text-gray-800",
     };
 
     return (
       <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
           statusStyles[status] || "bg-gray-100 text-gray-800"
         }`}
       >
@@ -767,7 +767,7 @@ const AllComplaintsPage = () => {
                       </button>
                       <button
                         onClick={() => openViewModal(complaint)}
-                        className="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300"
+                        className="px-3 py-1 bg-white border border-gray-200 text-blue-600 text-sm rounded hover:bg-gray-50"
                       >
                         View
                       </button>
@@ -807,7 +807,7 @@ const AllComplaintsPage = () => {
                 <p className="text-gray-700 mb-3 whitespace-pre-line">{selectedComplaint.description}</p>
 
                 <div className="flex flex-wrap gap-3 mt-2">
-                  <div className="text-sm text-gray-600"><strong>Status:</strong> {selectedComplaint.status}</div>
+                  <div className="text-sm text-gray-600 flex items-center gap-2"><strong>Status:</strong><span>{getStatusBadge(selectedComplaint.status)}</span></div>
                   <div className="text-sm text-gray-600"><strong>Priority:</strong> {selectedComplaint.priority || 'N/A'}</div>
                   <div className="text-sm text-gray-600"><strong>Committee:</strong> {selectedComplaint.category || 'N/A'}</div>
                   <div className="text-sm text-gray-600"><strong>Filed By:</strong> {selectedComplaint.userId?.name || 'Anonymous'}</div>
@@ -1161,8 +1161,8 @@ const AnalyticsPage = () => {
 
       const committeeArr = Object.values(group).map(item => ({
         ...item,
-        resolutionRate: item.total ? Math.round((item.resolved / item.total)*100) : 0,
-      })).sort((a,b) => b.total - a.total);
+        resolutionRate: item.total ? Math.round((item.resolved / item.total) * 100) : 0,
+      })).sort((a, b) => b.total - a.total);
 
       setTopStats({ total, resolved, avgResolutionDays: Number(avgResolutionDays.toFixed(1)), pending, monthDeltaPct, monthCount: countThisMonth });
       setCommitteeStats(committeeArr);
@@ -1176,14 +1176,14 @@ const AnalyticsPage = () => {
 
   if (loading) return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
-      <h1 className="text-2xl font-bold text-gray-800">Committee Analytics</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">Committee Analytics</h1>
       <div className="flex items-center justify-center py-12 text-gray-500">Loading analytics...</div>
     </div>
   );
 
   if (error) return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
-      <h1 className="text-2xl font-bold text-gray-800">Committee Analytics</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">Committee Analytics</h1>
       <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">{error}</div>
     </div>
   );

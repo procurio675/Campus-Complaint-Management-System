@@ -7,6 +7,7 @@ import API_BASE_URL from "../config/api.js";
 
 import AdminSidebar from "../components/AdminSidebar";
 import ProfilePage from "./ProfilePage";
+import CreateAccountPage from "./CreateAccountPage"; // <--- 1. IMPORT ADDED
 
 // Admin Dashboard Home with real-time complaints
 const AdminDashboardHome = () => {
@@ -29,7 +30,7 @@ const AdminDashboardHome = () => {
     try {
       setLoading(true);
       setError("");
-      
+
       const token = localStorage.getItem("ccms_token");
       if (!token) {
         setError("You are not logged in. Please login again.");
@@ -49,16 +50,16 @@ const AdminDashboardHome = () => {
       );
 
       const complaints = data.complaints || [];
-      
+
       // Calculate stats
       const statsData = {
         total: complaints.length,
-        pending: complaints.filter(c => c.status === 'pending').length,
-        inProgress: complaints.filter(c => c.status === 'in-progress').length,
-        resolved: complaints.filter(c => c.status === 'resolved').length,
-        rejected: complaints.filter(c => c.status === 'rejected').length,
+        pending: complaints.filter((c) => c.status === "pending").length,
+        inProgress: complaints.filter((c) => c.status === "in-progress").length,
+        resolved: complaints.filter((c) => c.status === "resolved").length,
+        rejected: complaints.filter((c) => c.status === "rejected").length,
       };
-      
+
       setStats(statsData);
       // Get only the 5 most recent complaints
       setRecentComplaints(complaints.slice(0, 5));
@@ -312,15 +313,15 @@ const AllComplaintsPage = () => {
   const [newStatus, setNewStatus] = useState("");
   const [statusDescription, setStatusDescription] = useState("");
   const [updating, setUpdating] = useState(false);
-  const [sortConfig, setSortConfig] = useState(null); 
+  const [sortConfig, setSortConfig] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState({
-    status: [], 
-    committee: [], 
-    priority: [], 
+    status: [],
+    committee: [],
+    priority: [],
   });
   const [tempFilters, setTempFilters] = useState(filters);
-  const [searchTerm, setSearchTerm] = useState(""); 
+  const [searchTerm, setSearchTerm] = useState("");
 
 
   useEffect(() => {
@@ -331,7 +332,7 @@ const AllComplaintsPage = () => {
     try {
       setLoading(true);
       setError("");
-      
+
       const token = localStorage.getItem("ccms_token");
       if (!token) {
         setError("You are not logged in. Please login again.");
@@ -386,12 +387,12 @@ const AllComplaintsPage = () => {
       );
 
       await fetchAllComplaints();
-      
+
       setShowStatusModal(false);
       setSelectedComplaint(null);
       setNewStatus("");
       setStatusDescription("");
-      
+
       alert("Status updated successfully!");
     } catch (err) {
       console.error("Update Status Error:", err);
@@ -411,15 +412,20 @@ const AllComplaintsPage = () => {
     setShowStatusModal(true);
   };
 
+  // --- MERGE CONFLICT WAS HERE ---
+  // I have kept the new `openViewModal` function from the pull
+  // and removed the conflict markers.
   const openViewModal = (complaint) => {
     setSelectedComplaint(complaint);
     setShowViewModal(true);
   };
 
- const getComplaintId = (id) => {
+  const getComplaintId = (id) => {
     if (!id) return "";
     return `CC${id.slice(-6).toUpperCase()}`;
   };
+  // --- END OF CONFLICT RESOLUTION ---
+
   const sortComplaints = (key, newDirection) => {
     setSortConfig({ key, direction: newDirection });
   };
@@ -432,30 +438,30 @@ const AllComplaintsPage = () => {
 
       processableComplaints = processableComplaints.filter(c => {
         if (!c) return false;
-        
+
         const title = (c.title || "").toLowerCase();
         const category = (c.category || "").toLowerCase();
         const complaintId = getComplaintId(c._id).toLowerCase();
         const userName = (c.userId?.name || "").toLowerCase();
-        const directMatch = 
+        const directMatch =
           title.includes(lowerCaseSearch) ||
           category.includes(lowerCaseSearch) ||
           complaintId.includes(lowerCaseSearch);
 
         if (directMatch) return true;
-        
-       
+
+
         if (searchWords.length > 0) {
-           
-            const wordMatch = searchWords.every(word => userName.includes(word));
-            if (wordMatch) return true;
+
+          const wordMatch = searchWords.every(word => userName.includes(word));
+          if (wordMatch) return true;
         }
 
         return false;
       });
     }
 
-    
+
     if (filters.status.length > 0) {
       processableComplaints = processableComplaints.filter(c => c && filters.status.includes(c.status));
     }
@@ -470,7 +476,7 @@ const AllComplaintsPage = () => {
       processableComplaints.sort((a, b) => {
         if (!a) return sortConfig.direction === "ascending" ? 1 : -1;
         if (!b) return sortConfig.direction === "ascending" ? -1 : 1;
-        
+
         let aVal = a[sortConfig.key];
         let bVal = b[sortConfig.key];
 
@@ -480,7 +486,7 @@ const AllComplaintsPage = () => {
           aVal = priorityOrder[aVal] || 0;
           bVal = priorityOrder[bVal] || 0;
         }
-        
+
         if (aVal == null) return sortConfig.direction === "ascending" ? 1 : -1;
         if (bVal == null) return sortConfig.direction === "ascending" ? -1 : 1;
 
@@ -497,7 +503,7 @@ const AllComplaintsPage = () => {
 
     return processableComplaints;
   }, [complaints, sortConfig, filters, searchTerm]);
- 
+
   const handleFilterChange = (filterType, value, isChecked) => {
     setTempFilters(prev => {
       const currentValues = prev[filterType];
@@ -520,7 +526,7 @@ const AllComplaintsPage = () => {
     setTempFilters(defaultFilters);
     setShowFilterModal(false);
   };
- 
+
   const getStatusBadge = (status) => {
     const statusStyles = {
       pending: "bg-yellow-100 text-yellow-800",
@@ -570,18 +576,18 @@ const AllComplaintsPage = () => {
 
   const getSortLabel = () => {
     if (!sortConfig) return "Sort By";
-    
+
     if (sortConfig.key === "priority") {
-        return `Priority: ${sortConfig.direction === "ascending" ? "Low ↓" : "High ↑"}`;
+      return `Priority: ${sortConfig.direction === "ascending" ? "Low ↓" : "High ↑"}`;
     }
     if (sortConfig.key === "createdAt") {
-        return `Date: ${sortConfig.direction === "ascending" ? "Oldest ↓" : "Newest ↑"}`;
+      return `Date: ${sortConfig.direction === "ascending" ? "Oldest ↓" : "Newest ↑"}`;
     }
 
     return "Sort By";
   };
 
-  
+
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -619,77 +625,77 @@ const AllComplaintsPage = () => {
             Total: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
           </p>
         </div>
-        
-       
+
+
         <div className="flex gap-3 items-center">
-        
-            <div className="relative">
-                <input
-                    type="text"
-                    placeholder="Search complaints..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 w-48 sm:w-64"
-                />
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-            </div>
-            
-         
-            <div className="relative">
-                <select
-                    value={sortConfig ? `${sortConfig.key}-${sortConfig.direction}` : ""}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                            const [key, direction] = value.split('-');
-                            sortComplaints(key, direction);
-                        } else {
-                            setSortConfig(null);
-                        }
-                    }}
-                    className="px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
-                >
-                    <option value="" className="text-gray-500">{getSortLabel()}</option>
-                    <option value="priority-descending">Priority: High to Low</option>
-                    <option value="priority-ascending">Priority: Low to High</option>
-                    <option value="createdAt-descending">Date: New to Old</option>
-                    <option value="createdAt-ascending">Date: Old to New</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                </div>
-            </div>
+
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search complaints..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 w-48 sm:w-64"
+            />
+            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
 
 
-            <button
-                onClick={() => {
-                    setTempFilters(filters);
-                    setShowFilterModal(true);
-                }}
-                className={`flex items-center space-x-1 px-3 py-2 text-sm rounded-lg shadow-sm font-medium transition-colors border ${
-                    (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0)
-                        ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
+          <div className="relative">
+            <select
+              value={sortConfig ? `${sortConfig.key}-${sortConfig.direction}` : ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value) {
+                  const [key, direction] = value.split('-');
+                  sortComplaints(key, direction);
+                } else {
+                  setSortConfig(null);
+                }
+              }}
+              className="px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
             >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd"></path>
-                </svg>
-                { (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) && (
-                    <span className={`text-xs font-bold ${ (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) ? 'text-white' : 'text-blue-600'}`}>
-                        ({filters.status.length + filters.committee.length + filters.priority.length})
-                    </span>
-                )}
-            </button>
+              <option value="" className="text-gray-500">{getSortLabel()}</option>
+              <option value="priority-descending">Priority: High to Low</option>
+              <option value="priority-ascending">Priority: Low to High</option>
+              <option value="createdAt-descending">Date: New to Old</option>
+              <option value="createdAt-ascending">Date: Old to New</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+            </div>
+          </div>
 
-            <button
-              onClick={fetchAllComplaints}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Refresh
-            </button>
+
+          <button
+            onClick={() => {
+              setTempFilters(filters);
+              setShowFilterModal(true);
+            }}
+            className={`flex items-center space-x-1 px-3 py-2 text-sm rounded-lg shadow-sm font-medium transition-colors border ${
+              (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0)
+                ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd"></path>
+            </svg>
+            {(filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) && (
+              <span className={`text-xs font-bold ${ (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) ? 'text-white' : 'text-blue-600'}`}>
+                ({filters.status.length + filters.committee.length + filters.priority.length})
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={fetchAllComplaints}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Refresh
+          </button>
         </div>
       </div>
 
@@ -715,8 +721,8 @@ const AllComplaintsPage = () => {
             <tbody>
               {sortedAndFilteredComplaints.map((complaint) => (
                 <tr
-                 
-                  key={complaint?._id || Math.random()} 
+
+                  key={complaint?._id || Math.random()}
                   className="border-b hover:bg-gray-50 transition-colors"
                 >
                   <td className="p-3 text-gray-700 font-mono text-sm">
@@ -906,7 +912,7 @@ const AllComplaintsPage = () => {
             </h2>
 
             <div className="space-y-6">
-          
+
               <div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-3">
                   Complaint Status
@@ -950,27 +956,27 @@ const AllComplaintsPage = () => {
                 </div>
               </div>
               <div>
-  <h3 className="text-lg font-semibold text-gray-700 mb-3">
-    Committee
-  </h3>
-  <div className="flex flex-wrap gap-4">
-    {[...new Set(complaints.map(c => c.category).filter(c => c))]
-      .filter(category => category !== "Canteen") 
-       .filter(category => category !== "Tech Committee") 
-      .sort()
-      .map((category) => (
-        <label key={category} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tempFilters.committee.includes(category)}
-                        onChange={(e) =>
-                          handleFilterChange("committee", category, e.target.checked)
-                        }
-                        className="form-checkbox h-4 w-4 text-blue-600 rounded"
-                      />
-                      <span className="text-gray-700 text-sm">{category}</span>
-                    </label>
-                  ))}
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                  Committee
+                </h3>
+                <div className="flex flex-wrap gap-4">
+                  {[...new Set(complaints.map(c => c.category).filter(c => c))]
+                    .filter(category => category !== "Canteen")
+                    .filter(category => category !== "Tech Committee")
+                    .sort()
+                    .map((category) => (
+                      <label key={category} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tempFilters.committee.includes(category)}
+                          onChange={(e) =>
+                            handleFilterChange("committee", category, e.target.checked)
+                          }
+                          className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                        />
+                        <span className="text-gray-700 text-sm">{category}</span>
+                      </label>
+                    ))}
                 </div>
               </div>
             </div>
@@ -1320,6 +1326,10 @@ export default function AdminDashboard() {
             <Route path="general-complaints" element={<GeneralComplaintsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            
+            {/* <--- 2. ROUTE ADDED ---> */}
+            <Route path="create-account" element={<CreateAccountPage />} />
+
             <Route path="*" element={<Navigate to="/admin-dashboard" replace />} />
           </Routes>
         </main>

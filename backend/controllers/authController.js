@@ -227,6 +227,164 @@ const resetPassword = async (req, res) => {
   }
 };
 
-export { loginUser, getUserProfile, changePassword, forgotPassword, resetPassword  };
+
+
+// Admin-only: create a new student account
+const registerStudent = async (req, res) => {
+  try {
+    // Only admins can create accounts
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Please provide name, email and password.' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!normalizedEmail.endsWith('@dau.ac.in')) {
+      return res.status(400).json({ message: 'Email must end with @dau.ac.in' });
+    }
+
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      return res.status(400).json({ message: 'An account with this email already exists.' });
+    }
+
+    const user = new User({
+      name: name.trim(),
+      email: normalizedEmail,
+      password,
+      role: 'student',
+    });
+
+    await user.save();
+
+    res.status(201).json({ message: 'Student account created successfully.' });
+  } catch (error) {
+    console.error('registerStudent error:', error);
+    res.status(500).json({ message: 'Failed to create student account.' });
+  }
+};
+
+// Admin-only: create a new committee account
+const registerCommittee = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Please provide name, email and password.' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    if (!normalizedEmail.endsWith('@dau.ac.in')) {
+      return res.status(400).json({ message: 'Email must end with @dau.ac.in' });
+    }
+
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      return res.status(400).json({ message: 'An account with this email already exists.' });
+    }
+
+    // Canonical committee keys (must match userModel enum / seed data)
+    const registered = [
+      'Canteen',
+      'Hostel',
+      'Sports',
+      'Tech',
+      'Academic',
+      'Internal Complaints',
+      'Annual Fest',
+      'Cultural',
+      'Placement',
+      'Disciplinary Action',
+      'Maintenance',
+    ];
+
+    const lowerName = name.toLowerCase();
+    // Try to find a canonical key that matches the provided name (loose matching)
+    let matched = registered.find((r) => {
+      const rl = r.toLowerCase();
+      return rl === lowerName || lowerName.includes(rl) || rl.includes(lowerName);
+    });
+
+    if (!matched) {
+      // Try common display variants
+      matched = registered.find((r) => {
+        const rl = r.toLowerCase();
+        // allow matching when provided name contains a key word like 'hostel' or 'tech'
+        return rl.split(' ').some((part) => lowerName.includes(part));
+      });
+    }
+
+    if (!matched) {
+      return res.status(400).json({
+        message: `Unknown committee name. Allowed committees: ${registered.join(', ')}`,
+      });
+    }
+
+    const user = new User({
+      name: name.trim(),
+      email: normalizedEmail,
+      password,
+      role: 'committee',
+      committeeType: matched,
+    });
+
+    await user.save();
+
+    res.status(201).json({ message: 'Committee account created successfully.' });
+  } catch (error) {
+    console.error('registerCommittee error:', error);
+    res.status(500).json({ message: 'Failed to create committee account.' });
+  }
+};
+
+
+
+// Admin-only: delete a user by email
+const deleteUser = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Please provide an email.' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Prevent deleting admin accounts via this endpoint
+    const target = await User.findOne({ email: normalizedEmail });
+    if (!target) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (target.role === 'admin') {
+      return res.status(400).json({ message: 'Cannot delete admin accounts.' });
+    }
+
+    // Prevent admin deleting themselves
+    if (req.user.email && req.user.email.toLowerCase() === normalizedEmail) {
+      return res.status(400).json({ message: 'You cannot delete your own account.' });
+    }
+
+    await User.deleteOne({ _id: target._id });
+
+    res.status(200).json({ message: 'User deleted successfully.' });
+  } catch (error) {
+    console.error('deleteUser error:', error);
+    res.status(500).json({ message: 'Failed to delete user.' });
+  }
+};
+
+export { loginUser, getUserProfile, changePassword, forgotPassword, resetPassword, registerStudent, registerCommittee, deleteUser };
 
 

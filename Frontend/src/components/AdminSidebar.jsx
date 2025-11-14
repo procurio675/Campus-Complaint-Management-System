@@ -75,7 +75,7 @@ export default function AdminSidebar() {
             to="/admin-dashboard/create-account"
             icon={<FaUserPlus size={18} />}
           >
-            Create Account
+            Create/Delete Account
           </NavItem>
         </nav>
       </div>

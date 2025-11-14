@@ -12,7 +12,9 @@ export const getNotifications = async (req, res) => {
       .populate('complaint', 'title status')
       .lean();
 
-    res.status(200).json({ notifications });
+    const unreadCount = await Notification.countDocuments({ user: userId, isRead: false });
+
+    res.status(200).json({ notifications, unreadCount });
   } catch (error) {
     console.error('Get Notifications Error:', error);
     res.status(500).json({ message: error.message || 'Failed to fetch notifications' });
@@ -55,5 +57,28 @@ export const markAllRead = async (req, res) => {
   } catch (error) {
     console.error('Mark All Notifications Read Error:', error);
     res.status(500).json({ message: error.message || 'Failed to mark notifications' });
+  }
+};
+
+/**
+ * Delete (dismiss) a notification
+ * DELETE /api/notifications/:id
+ */
+export const deleteNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const notification = await Notification.findOneAndDelete({ _id: id, user: userId });
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    const unreadCount = await Notification.countDocuments({ user: userId, isRead: false });
+
+    res.status(200).json({ message: 'Notification deleted', unreadCount });
+  } catch (error) {
+    console.error('Delete Notification Error:', error);
+    res.status(500).json({ message: error.message || 'Failed to delete notification' });
   }
 };

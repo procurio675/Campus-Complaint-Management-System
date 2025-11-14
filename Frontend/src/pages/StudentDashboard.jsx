@@ -2,6 +2,7 @@ import React from "react";
 import { useState, useRef, useEffect, useMemo  } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye, FaThumbsUp, FaTrash } from "react-icons/fa";
+import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye, FaThumbsUp, FaTimes } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
@@ -1463,8 +1464,13 @@ const AllComplaintsPage = () => {
 
 export default function StudentDashboard() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // load logged-in user (stored at login) and derive display values
   let _storedUser = null;
@@ -1485,17 +1491,164 @@ export default function StudentDashboard() {
     navigate("/login", { replace: true });
   };
 
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const { data } = await axios.get(
+        `${API_BASE_URL}/notifications`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
+    } catch (err) {
+      console.error("Fetch Notifications Error:", err);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      await axios.patch(
+        `${API_BASE_URL}/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Update local state
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif._id === notificationId ? { ...notif, isRead: true } : notif
+        )
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Mark Notification Read Error:", err);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      await axios.patch(
+        `${API_BASE_URL}/notifications/mark-all-read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Update local state
+      setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Mark All Notifications Read Error:", err);
+    }
+  };
+
+  // Dismiss notification
+  const dismissNotification = async (notificationId, isRead) => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const { data } = await axios.delete(
+        `${API_BASE_URL}/notifications/${notificationId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setNotifications((prev) => prev.filter((notif) => notif._id !== notificationId));
+
+      if (!isRead) {
+        if (typeof data?.unreadCount === "number") {
+          setUnreadCount(data.unreadCount);
+        } else {
+          setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
+      }
+    } catch (err) {
+      console.error("Delete Notification Error:", err);
+    }
+  };
+
+  // Format notification date
+  const formatNotificationDate = (dateString) => {
+    if (!dateString) return "Just now";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+  };
+
+  // Fetch notifications on mount and set up polling
+  useEffect(() => {
+    fetchNotifications();
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle click outside for profile dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotificationDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef]);
+  }, [dropdownRef, notificationRef]);
 
 
   return (
@@ -1509,9 +1662,104 @@ export default function StudentDashboard() {
             Campus Complaint Resolve
           </h1>
           <div className="flex items-center gap-6">
-            <button className="text-gray-500 hover:text-gray-800 transition-colors">
-              <FaBell size={22} />
-            </button>
+            <div className="relative" ref={notificationRef}>
+              <button
+                onClick={() => {
+                  setNotificationDropdownOpen(!notificationDropdownOpen);
+                  if (!notificationDropdownOpen) {
+                    fetchNotifications();
+                  }
+                }}
+                className="relative text-gray-500 hover:text-gray-800 transition-colors"
+              >
+                <FaBell size={22} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notificationDropdownOpen && (
+                <div className="absolute top-full right-0 mt-3 w-96 bg-white rounded-lg shadow-xl z-20 overflow-hidden border max-h-96 flex flex-col">
+                  <div className="p-4 border-b flex items-center justify-between bg-gray-50">
+                    <h3 className="font-semibold text-gray-800">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  <div className="overflow-y-auto flex-1">
+                    {loadingNotifications ? (
+                      <div className="p-4 text-center text-gray-500">Loading...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-8 text-center text-gray-500">
+                        <FaBell size={32} className="mx-auto mb-2 text-gray-300" />
+                        <p>No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification._id}
+                          onClick={() => {
+                            if (!notification.isRead) {
+                              markAsRead(notification._id);
+                            }
+                            if (notification.complaint) {
+                              navigate(`/student-dashboard/complaint/${notification.complaint._id}`);
+                              setNotificationDropdownOpen(false);
+                            }
+                          }}
+                          className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
+                            !notification.isRead ? "bg-blue-50" : ""
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
+                                !notification.isRead ? "bg-blue-600" : "bg-transparent"
+                              }`}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`text-sm ${
+                                  !notification.isRead
+                                    ? "font-semibold text-gray-900"
+                                    : "text-gray-700"
+                                }`}
+                              >
+                                {notification.message}
+                              </p>
+                              {notification.data?.description && (
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                  {notification.data.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-400 mt-1">
+                                {formatNotificationDate(notification.createdAt)}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                dismissNotification(notification._id, notification.isRead);
+                              }}
+                              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                              title="Dismiss notification"
+                            >
+                              <FaTimes size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}

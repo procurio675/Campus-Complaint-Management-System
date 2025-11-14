@@ -20,14 +20,22 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const app = express();
 
 // Official CORS setup
-const allowedOrigins = [
-  "http://localhost:5175", // Vite dev (your current port)
+const defaultAllowedOrigins = [
+  "http://localhost:5175", // Vite dev (current port)
   "http://localhost:5174",
   "http://localhost:5173", // React dev server
   "http://localhost:3000", // Alternate React port
-  "http://localhost:5175",
-  "http://localhost:5174",
+  "http://127.0.0.1:5175",
+  "http://127.0.0.1:5174",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
 ];
+
+const envAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+  ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : [];
+
+const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envAllowedOrigins]));
 
 app.use(
   cors({

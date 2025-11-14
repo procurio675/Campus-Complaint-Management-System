@@ -27,3 +27,4 @@ build/
 
 # --- Generated Output ---
 out/
+tmp.mjs

@@ -3,6 +3,28 @@ import Notification from '../models/Notification.js';
 import { classifyComplaint, classifySubcategory } from '../utils/aiRouting.js';
 import { sendStatusUpdateEmail } from '../utils/emailService.js';
 
+const COMMITTEE_CATEGORY_MAP = {
+  Hostels: 'Hostel Management',
+  Hostel: 'Hostel Management',
+  Maintenance: 'Hostel Management',
+  Canteen: 'Cafeteria',
+  Cafeteria: 'Cafeteria',
+  'Tech Committee': 'Tech-Support',
+  Tech: 'Tech-Support',
+  'Tech Support': 'Tech-Support',
+  Sports: 'Sports',
+  'Disciplinary Action': 'Internal Complaints',
+  'Internal Complaints': 'Internal Complaints',
+  Academic: 'Academic',
+  'Annual Fest': 'Annual Fest',
+  Cultural: 'Cultural',
+  Placement: 'Student Placement',
+  'Student Placement': 'Student Placement',
+};
+
+const resolveCommitteeCategory = (committeeType) =>
+  COMMITTEE_CATEGORY_MAP[committeeType] || committeeType;
+
 /**
  * Create a new complaint
  * POST /api/complaints/create
@@ -24,6 +46,12 @@ export const createComplaint = async (req, res) => {
     try {
       aiResult = await classifyComplaint(title, description);
     } catch (error) {
+      if (error?.code === 'INVALID_COMPLAINT') {
+        return res.status(400).json({
+          message: error.message || 'Complaint could not be processed. Please revise and try again.',
+        });
+      }
+
       console.error('AI Routing Error:', error);
       // Use fallback classification
       aiResult = {
@@ -230,17 +258,7 @@ export const getAssignedComplaintsStats = async (req, res) => {
       });
     }
 
-    // Map committee types to complaint categories
-    const committeeCategoryMap = {
-      'Hostel': 'Hostel Management',
-      'Canteen': 'Cafeteria',
-      'Tech Committee': 'Tech-Support',
-      'Sports': 'Sports',
-      'Disciplinary Action': 'Internal Complaints',
-      'Maintenance': 'Hostel Management',
-    };
-
-    const category = committeeCategoryMap[user.committeeType];
+    const category = resolveCommitteeCategory(user.committeeType);
     
     if (!category) {
       return res.status(200).json({
@@ -292,17 +310,7 @@ export const getAssignedComplaints = async (req, res) => {
       });
     }
 
-    // Map committee types to complaint categories
-    const committeeCategoryMap = {
-      'Hostel': 'Hostel Management',
-      'Canteen': 'Cafeteria',
-      'Tech Committee': 'Tech-Support',
-      'Sports': 'Sports',
-      'Disciplinary Action': 'Internal Complaints',
-      'Maintenance': 'Hostel Management', // Maintenance can handle hostel issues
-    };
-
-    const category = committeeCategoryMap[user.committeeType];
+    const category = resolveCommitteeCategory(user.committeeType);
     
     if (!category) {
       return res.status(200).json({
@@ -365,21 +373,7 @@ export const getCommitteeAnalytics = async (req, res) => {
   try {
     const { committeeType } = req.params;
 
-    // Map committee types to complaint categories (reuse mapping)
-    const committeeCategoryMap = {
-      'Hostel': 'Hostel Management',
-      'Canteen': 'Cafeteria',
-      'Tech Committee': 'Tech-Support',
-      'Sports': 'Sports',
-      'Disciplinary Action': 'Internal Complaints',
-      'Maintenance': 'Hostel Management',
-    };
-
-    // Allow some common alternate keys (e.g. 'Tech' vs 'Tech Committee').
-    // If we don't have a mapping, fall back to using the committeeType string
-    // as the category name — this makes the endpoint more tolerant to values
-    // coming from the frontend or seed data.
-    const category = committeeCategoryMap[committeeType] || committeeType;
+    const category = resolveCommitteeCategory(committeeType);
 
     if (!category) {
       // If no category mapping is found, return zeros for the requested fields
@@ -651,6 +645,51 @@ export const getComplaint = async (req, res) => {
 };
 
 /**
+ * Delete a complaint (Students can delete their own complaints only)
+ * DELETE /api/complaints/:id
+ */
+export const deleteComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    // Only students are allowed to delete complaints
+    if (user.role !== 'student') {
+      return res.status(403).json({
+        message: 'Only students can delete complaints',
+      });
+    }
+
+    // Find the complaint belonging to the logged-in student
+    const complaint = await Complaint.findOne({ _id: id, userId: user._id });
+
+    if (!complaint) {
+      return res.status(404).json({
+        message: 'Complaint not found',
+      });
+    }
+
+    // Remove associated notifications (if any) before deleting the complaint
+    try {
+      await Notification.deleteMany({ complaint: complaint._id });
+    } catch (notificationError) {
+      console.warn('Failed to delete related notifications:', notificationError);
+    }
+
+    await complaint.deleteOne();
+
+    res.status(200).json({
+      message: 'Complaint deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete Complaint Error:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to delete complaint',
+    });
+  }
+};
+
+/**
  * Get all complaints (Admin only)
  * GET /api/complaints/all
  */
@@ -742,16 +781,7 @@ export const updateComplaintStatus = async (req, res) => {
 
     // If committee, verify they have access to this complaint's category
     if (user.role === 'committee') {
-      const committeeCategoryMap = {
-        'Hostel': 'Hostel Management',
-        'Canteen': 'Cafeteria',
-        'Tech Committee': 'Tech-Support',
-        'Sports': 'Sports',
-        'Disciplinary Action': 'Internal Complaints',
-        'Maintenance': 'Hostel Management',
-      };
-
-      const allowedCategory = committeeCategoryMap[user.committeeType];
+      const allowedCategory = resolveCommitteeCategory(user.committeeType);
       
       if (complaint.category !== allowedCategory) {
         return res.status(403).json({

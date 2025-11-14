@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
-import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye, FaThumbsUp } from "react-icons/fa";
+import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye, FaThumbsUp, FaTrash } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
@@ -16,15 +16,28 @@ const MyComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
+  const [actionError, setActionError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
 
   useEffect(() => {
     fetchComplaints();
   }, []);
 
+  useEffect(() => {
+    if (!actionMessage) {
+      return;
+    }
+
+    const timeout = setTimeout(() => setActionMessage(""), 4000);
+    return () => clearTimeout(timeout);
+  }, [actionMessage]);
+
   const fetchComplaints = async () => {
     try {
       setLoading(true);
       setError("");
+      setActionError("");
       
       const token = localStorage.getItem("ccms_token");
       if (!token) {
@@ -52,6 +65,46 @@ const MyComplaintsPage = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (complaintId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this complaint? This action cannot be undone."
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    const token = localStorage.getItem("ccms_token");
+    if (!token) {
+      setActionError("You are not logged in. Please login again.");
+      return;
+    }
+
+    try {
+      setDeletingId(complaintId);
+      setActionError("");
+      await axios.delete(`${API_BASE_URL}/complaints/${complaintId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      setComplaints((prevComplaints) =>
+        prevComplaints.filter((complaint) => complaint._id !== complaintId)
+      );
+      setActionMessage("Complaint deleted successfully.");
+    } catch (err) {
+      console.error("Delete Complaint Error:", err);
+      setActionMessage("");
+      setActionError(
+        err?.response?.data?.message ||
+          "Failed to delete the complaint. Please try again."
+      );
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -149,6 +202,18 @@ const MyComplaintsPage = () => {
         </button>
       </div>
 
+      {actionMessage && (
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          {actionMessage}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {actionError}
+        </div>
+      )}
+
       {complaints.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg mb-4">
@@ -209,13 +274,27 @@ const MyComplaintsPage = () => {
                     {formatDate(complaint.createdAt)}
                   </td>
                   <td className="p-3">
-                    <Link
-                      to={`/student-dashboard/complaint/${complaint._id}`}
-                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-sm"
-                    >
-                      <FaEye />
-                      View
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Link
+                        to={`/student-dashboard/complaint/${complaint._id}`}
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-sm"
+                      >
+                        <FaEye />
+                        View
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(complaint._id)}
+                        disabled={deletingId === complaint._id}
+                        className={`inline-flex items-center gap-1 text-sm font-medium transition-colors ${
+                          deletingId === complaint._id
+                            ? "text-red-400 cursor-not-allowed"
+                            : "text-red-600 hover:text-red-800"
+                        }`}
+                      >
+                        <FaTrash />
+                        {deletingId === complaint._id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -232,6 +311,7 @@ const ComplaintDetailPage = () => {
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
   // Get complaint ID from URL
@@ -272,6 +352,41 @@ const ComplaintDetailPage = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this complaint? This action cannot be undone."
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    const token = localStorage.getItem("ccms_token");
+    if (!token) {
+      setError("You are not logged in. Please login again.");
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await axios.delete(`${API_BASE_URL}/complaints/${complaintId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      navigate("/student-dashboard/my-complaints", { replace: true });
+    } catch (err) {
+      console.error("Delete Complaint Error:", err);
+      setError(
+        err?.response?.data?.message ||
+          "Failed to delete the complaint. Please try again."
+      );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -350,12 +465,26 @@ const ComplaintDetailPage = () => {
               ID: {getComplaintId(complaint._id)}
             </p>
           </div>
-          <button
-            onClick={() => navigate("/student-dashboard/my-complaints")}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-          >
-            ← Back to My Complaints
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/student-dashboard/my-complaints")}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              ← Back to My Complaints
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                deleting
+                  ? "bg-red-300 text-white cursor-not-allowed"
+                  : "bg-red-600 text-white hover:bg-red-700"
+              }`}
+            >
+              <FaTrash size={14} />
+              {deleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
         </div>
 
         {/* Complaint Info */}

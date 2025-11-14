@@ -1,0 +1,50 @@
+[
+  {
+    "text": "food food food food food",
+    "label": "spam"
+  },
+  {
+    "text": "lorem ipsum dolor sit amet",
+    "label": "spam"
+  },
+  {
+    "text": "sample complaint please ignore",
+    "label": "spam"
+  },
+  {
+    "text": "test complaint testing only",
+    "label": "spam"
+  },
+  {
+    "text": "sports sports sports sports",
+    "label": "spam"
+  },
+  {
+    "text": "sports food sports food random words",
+    "label": "spam"
+  },
+  {
+    "text": "bench in lecture theatre is broken and sparks when touched",
+    "label": "valid"
+  },
+  {
+    "text": "food in canteen has insects and smells spoiled",
+    "label": "valid"
+  },
+  {
+    "text": "wifi in hostel not working since morning",
+    "label": "valid"
+  },
+  {
+    "text": "loud noise from generator disturbing classes",
+    "label": "valid"
+  },
+  {
+    "text": "water leakage near dorm room 204",
+    "label": "valid"
+  },
+  {
+    "text": "printer in lab jammed papers all day",
+    "label": "valid"
+  }
+]

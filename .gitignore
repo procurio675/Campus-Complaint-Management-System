@@ -54,3 +54,7 @@ logs/
 .cache/
 
 .early.coverage
+
+# --- Generated Output ---
+out/
+tmp.mjs

@@ -207,11 +207,19 @@ export default function AddComplaintPage() {
       navigate("/student-dashboard/my-complaints");
     } catch (error) {
       console.error("Submit Complaint Error:", error?.response || error);
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to submit complaint. Please try again.";
-      setErrors([errorMessage]);
+      const status = error?.response?.status;
+      const backendMessage = error?.response?.data?.message;
+
+      if (status === 400 && backendMessage?.toLowerCase().includes("spam")) {
+        alert("The system flagged your complaint as spam or too vague. Please revise the details and submit again.");
+        setErrors([backendMessage]);
+      } else {
+        const errorMessage =
+          backendMessage ||
+          error?.message ||
+          "Failed to submit complaint. Please try again.";
+        setErrors([errorMessage]);
+      }
     } finally {
       setSubmitting(false);
     }

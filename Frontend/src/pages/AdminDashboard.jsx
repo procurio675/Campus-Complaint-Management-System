@@ -308,6 +308,7 @@ const AllComplaintsPage = () => {
   const [error, setError] = useState("");
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [newStatus, setNewStatus] = useState("");
   const [statusDescription, setStatusDescription] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -408,6 +409,11 @@ const AllComplaintsPage = () => {
     setNewStatus(complaint.status);
     setStatusDescription("");
     setShowStatusModal(true);
+  };
+
+  const openViewModal = (complaint) => {
+    setSelectedComplaint(complaint);
+    setShowViewModal(true);
   };
 
  const getComplaintId = (id) => {
@@ -731,17 +737,95 @@ const AllComplaintsPage = () => {
                     {complaint?.category}
                   </td>
                   <td className="p-3">
-                    <button
-                      onClick={() => openStatusModal(complaint)}
-                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                    >
-                      Update Status
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openStatusModal(complaint)}
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      >
+                        Update Status
+                      </button>
+                      <button
+                        onClick={() => openViewModal(complaint)}
+                        className="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300"
+                      >
+                        View
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showViewModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-3xl overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Complaint Details</h2>
+                <p className="text-sm text-gray-600 mt-1">ID: {getComplaintId(selectedComplaint._id)}</p>
+              </div>
+              <div>
+                <button
+                  onClick={() => { setShowViewModal(false); setSelectedComplaint(null); }}
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">Title</h3>
+                <p className="text-gray-800 mb-3">{selectedComplaint.title}</p>
+
+                <h3 className="text-sm font-semibold text-gray-700">Description</h3>
+                <p className="text-gray-700 mb-3 whitespace-pre-line">{selectedComplaint.description}</p>
+
+                <div className="flex flex-wrap gap-3 mt-2">
+                  <div className="text-sm text-gray-600"><strong>Status:</strong> {selectedComplaint.status}</div>
+                  <div className="text-sm text-gray-600"><strong>Priority:</strong> {selectedComplaint.priority || 'N/A'}</div>
+                  <div className="text-sm text-gray-600"><strong>Committee:</strong> {selectedComplaint.category || 'N/A'}</div>
+                  <div className="text-sm text-gray-600"><strong>Filed By:</strong> {selectedComplaint.userId?.name || 'Anonymous'}</div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">Attachments</h3>
+                <div className="mt-2 space-y-3">
+                  {(selectedComplaint.attachments || []).length === 0 && (
+                    <p className="text-gray-500">No attachments uploaded.</p>
+                  )}
+
+                  {(selectedComplaint.attachments || []).map((url, idx) => {
+                    const lower = (url || '').toLowerCase();
+                    const ext = lower.split('.').pop() || '';
+                    const isImage = /^(jpg|jpeg|png|gif|webp)$/i.test(ext);
+                    const isVideo = /^(mp4|webm|ogg|mov)$/i.test(ext);
+                    return (
+                      <div key={idx} className="border rounded p-2">
+                        {isImage && (
+                          <img src={url} alt={`attachment-${idx}`} className="max-w-full h-48 object-contain rounded" />
+                        )}
+                        {isVideo && (
+                          <video controls className="w-full h-48 bg-black rounded">
+                            <source src={url} />
+                            Your browser does not support the video tag.
+                          </video>
+                        )}
+                        {!isImage && !isVideo && (
+                          <a href={url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Download / Open attachment</a>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

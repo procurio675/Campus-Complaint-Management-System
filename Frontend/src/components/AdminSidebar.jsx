@@ -3,9 +3,9 @@ import { NavLink } from "react-router-dom";
 import {
   FaHome,
   FaListAlt,
-  // FaUsers, // REMOVED
   FaChartBar,
   FaClipboardList,
+  FaUserPlus, // 1. RE-ADDED THE ICON IMPORT
 } from "react-icons/fa";
 
 const Logo = () => (
@@ -63,24 +63,22 @@ export default function AdminSidebar() {
             General Complaints
           </NavItem>
 
-          {/* REMOVED NAV ITEM
-          <NavItem
-            to="/admin-dashboard/committee-dashboard"
-            icon={<FaUsers size={18} />}
-          >
-            Committee Dashboard
-          </NavItem> 
-          */}
-          
           <NavItem
             to="/admin-dashboard/analytics"
             icon={<FaChartBar size={18} />}
           >
             Analytics
           </NavItem>
+          
+          {/* 2. RE-ADDED THE NAVITEM LINK */}
+          <NavItem
+            to="/admin-dashboard/create-account"
+            icon={<FaUserPlus size={18} />}
+          >
+            Create Account
+          </NavItem>
         </nav>
       </div>
     </aside>
   );
 }
-

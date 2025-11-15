@@ -4,20 +4,47 @@ import { FaPaperPlane, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
 
+const INITIAL_FORM_STATE = {
+  title: "",
+  desc: "",
+  location: "",
+  type: "Public",
+  isAnonymous: false,
+};
+
 export default function AddComplaintPage() {
   const [preview, setPreview] = useState([]);
   const [files, setFiles] = useState([]);
   const [errors, setErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [successDetails, setSuccessDetails] = useState(null);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    title: "",
-    desc: "",
-    location: "",
-    type: "Public",
-    isAnonymous: false,
-  });
+  const [form, setForm] = useState({ ...INITIAL_FORM_STATE });
+
+  const resetFormState = () => {
+    setForm({ ...INITIAL_FORM_STATE });
+    setFiles([]);
+    setPreview([]);
+    setErrors([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null;
+    }
+  };
+
+  const closeSuccessModal = () => {
+    setSuccessDetails(null);
+  };
+
+  const handleViewComplaints = () => {
+    closeSuccessModal();
+    navigate("/student-dashboard/my-complaints");
+  };
+
+  const handleFileAnother = () => {
+    closeSuccessModal();
+    resetFormState();
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -201,26 +228,18 @@ export default function AddComplaintPage() {
         }
       );
 
-      // Show success message with committee information
-      const successMessage = `Complaint submitted successfully!\n\nComplaint ID: CC${data.complaint._id.slice(
-        -6
-      )}\nRouted to: ${data.routing.committee}\nPriority: ${
-        data.routing.priority
-      }`;
-
-      alert(successMessage);
-
-      // Navigate to my complaints page
-      navigate("/student-dashboard/my-complaints");
+      const complaintId = `CC${data.complaint._id.slice(-6).toUpperCase()}`;
+      setSuccessDetails({
+        complaintId,
+        committee: data.routing.committee,
+      });
+      resetFormState();
     } catch (error) {
       console.error("Submit Complaint Error:", error?.response || error);
       const status = error?.response?.status;
       const backendMessage = error?.response?.data?.message;
 
       if (status === 400 && backendMessage?.toLowerCase().includes("spam")) {
-        alert(
-          "The system flagged your complaint as spam or too vague. Please revise the details and submit again."
-        );
         setErrors([backendMessage]);
       } else {
         const errorMessage =
@@ -235,7 +254,75 @@ export default function AddComplaintPage() {
   };
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+    <>
+      {submitting && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white/95 border border-blue-100 rounded-2xl shadow-2xl p-6 max-w-sm w-[90%] text-center">
+            <div className="submission-spinner mx-auto mb-4" aria-hidden="true" />
+            <p className="text-lg font-semibold text-gray-800">
+              Submitting your complaint
+            </p>
+            <p className="text-sm text-gray-500 mt-2" aria-live="assertive">
+              We are encrypting your attachments and routing the complaint. This may take a few seconds.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {successDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            onClick={closeSuccessModal}
+          />
+          <div className="relative bg-white rounded-[32px] px-8 py-10 mx-4 w-full max-w-lg border border-blue-100 shadow-[0_28px_60px_rgba(15,23,42,0.18)] text-center">
+            <div className="success-tick mx-auto mb-6" aria-hidden="true" />
+            <p className="text-xs font-semibold tracking-[0.35em] text-sky-500 uppercase">
+              Success
+            </p>
+            <h2 className="text-2xl font-bold text-gray-900 mt-2">
+              Complaint Submitted
+            </h2>
+            <p className="text-sm text-gray-500 mt-3">
+              We will notify you as progress is made. Keep an eye on your dashboard for updates.
+            </p>
+
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mt-8 text-left">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                Complaint ID
+              </p>
+              <p className="text-xl font-semibold text-gray-900">
+                {successDetails.complaintId}
+              </p>
+              <div className="mt-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  Routed to
+                </p>
+                <p className="text-base font-medium text-gray-800">
+                  {successDetails.committee}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={handleViewComplaints}
+                className="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all"
+              >
+                View My Complaints
+              </button>
+              <button
+                onClick={handleFileAnother}
+                className="flex-1 border border-blue-100 text-blue-700 font-semibold py-3 px-4 rounded-xl hover:bg-blue-50 transition-all"
+              >
+                File Another
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
       
         <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
           File a New Complaint
@@ -508,7 +595,7 @@ export default function AddComplaintPage() {
             </button>
           </div>
         </form>
-      
-    </div>
+      </div>
+    </>
   );
 }

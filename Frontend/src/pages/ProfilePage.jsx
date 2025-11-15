@@ -9,13 +9,16 @@ import {
   FaLock, 
 } from "react-icons/fa";
 
-const InfoItem = ({ icon, label, value }) => (
+const InfoItem = ({ icon, label, value, testId }) => (
   <div className="flex flex-col">
     <label className="flex items-center gap-2 text-xs font-medium text-gray-500">
       {React.cloneElement(icon, { className: "text-gray-400", size: 14 })}
       {label}
     </label>
-    <div className="mt-1 text-base font-semibold text-gray-800 ml-6">
+    <div
+      className="mt-1 text-base font-semibold text-gray-800 ml-6"
+      data-testid={testId}
+    >
       {value}
     </div>
   </div>
@@ -160,7 +163,12 @@ export default function ProfilePage() {
             {avatarLetter}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800">{displayName}</h2>
+            <h2
+              className="text-xl font-bold text-gray-800"
+              data-testid="profile-name"
+            >
+              {displayName}
+            </h2>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -168,6 +176,7 @@ export default function ProfilePage() {
             icon={<FaEnvelope />}
             label="Email Address"
             value={displayEmail}
+            testId="profile-email"
           />
 
           {/* Decide whether to show Student ID and Department: only show when local-part has NO English letters */}
@@ -182,6 +191,7 @@ export default function ProfilePage() {
                   icon={<FaUser />}
                   label="Role"
                   value={displayRole}
+                  testId="profile-role"
                 />
               );
             }
@@ -193,16 +203,19 @@ export default function ProfilePage() {
                   icon={<FaIdBadge />}
                   label="Student ID"
                   value={displayStudentID}
+                  testId="profile-studentid"
                 />
                 <InfoItem
                   icon={<FaBuilding />}
                   label="Department"
                   value={displayDepartment}
+                  testId="profile-department"
                 />
                 <InfoItem
                   icon={<FaUser />}
                   label="Role"
                   value={displayRole}
+                  testId="profile-role"
                 />
               </>
             );

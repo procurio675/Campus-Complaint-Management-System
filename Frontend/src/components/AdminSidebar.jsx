@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   FaHome,
   FaListAlt,
@@ -8,16 +8,20 @@ import {
   FaUserPlus, // 1. RE-ADDED THE ICON IMPORT
 } from "react-icons/fa";
 
-const Logo = () => (
-  <div className="flex items-center gap-2 mb-8">
-    <div className="bg-blue-600 p-2 rounded-full text-white">
-      <span className="font-bold text-xl">CC</span>
+const Logo = ({ onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex items-center gap-3 mb-8 focus:outline-none group"
+    aria-label="Go to admin dashboard"
+  >
+    <div className="bg-blue-600 h-11 w-11 rounded-full text-white font-black text-lg tracking-tight flex items-center justify-center shadow-md">
+      CCR
     </div>
-    <div className="flex flex-col">
-      <span className="text-gray-700 font-semibold text-lg">CCMS</span>
-      <span className="text-gray-500 text-sm font-medium">Admin Portal</span>
-    </div>
-  </div>
+    <span className="text-gray-500 text-sm font-semibold group-hover:text-gray-700 transition-colors">
+      Admin Portal
+    </span>
+  </button>
 );
 
 const NavItem = ({ to, icon, children }) => {
@@ -41,10 +45,12 @@ const NavItem = ({ to, icon, children }) => {
 };
 
 export default function AdminSidebar() {
+  const navigate = useNavigate();
+
   return (
     <aside className="w-64 h-screen bg-white shadow-xl flex flex-col fixed">
       <div className="p-6">
-        <Logo />
+        <Logo onClick={() => navigate("/admin-dashboard")} />
         <nav className="flex flex-col gap-2">
           <NavItem to="/admin-dashboard" icon={<FaHome size={18} />}>
             Home

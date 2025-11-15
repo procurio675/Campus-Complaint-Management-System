@@ -81,20 +81,10 @@ export default function DashboardHome() {
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [userName, setUserName] = useState("");
+  const overviewTitle = "Complaint Overview";
+  const overviewSubtitle = "Here's an overview of your recent complaint activity.";
 
   useEffect(() => {
-    // Get user name from localStorage
-    const userData = localStorage.getItem("ccms_user");
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        setUserName(user.name || "User");
-      } catch (e) {
-        setUserName("User");
-      }
-    }
-    
     fetchDashboardData();
   }, []);
 
@@ -160,28 +150,32 @@ export default function DashboardHome() {
       label: "Total Complaints",
       value: stats.total,
       color: "blue",
+      testId: "dashboard-card-total",
     },
     {
       label: "Resolved",
       value: stats.resolved,
       color: "green",
+      testId: "dashboard-card-resolved",
     },
     {
       label: "In Progress",
       value: stats.inProgress,
       color: "yellow",
+      testId: "dashboard-card-inprogress",
     },
     {
       label: "Pending",
       value: stats.pending,
       color: "red",
+      testId: "dashboard-card-pending",
     },
   ];
 
   if (loading) {
     return (
       <div className="flex flex-col gap-8">
-        <h1 className="text-3xl font-bold text-gray-800">Welcome, {userName} 👋</h1>
+        <h1 className="text-3xl font-bold text-gray-800">{overviewTitle}</h1>
         <div className="flex items-center justify-center py-12">
           <div className="text-gray-500">Loading dashboard data...</div>
         </div>
@@ -192,7 +186,7 @@ export default function DashboardHome() {
   if (error) {
     return (
       <div className="flex flex-col gap-8">
-        <h1 className="text-3xl font-bold text-gray-800">Welcome, {userName} 👋</h1>
+        <h1 className="text-3xl font-bold text-gray-800">{overviewTitle}</h1>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <button
@@ -209,10 +203,8 @@ export default function DashboardHome() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-800">Welcome, {userName} 👋</h1>
-        <p className="text-gray-600 mt-2">
-          Here's an overview of your recent complaint activity.
-        </p>
+        <h1 className="text-3xl font-bold text-gray-800">{overviewTitle}</h1>
+        <p className="text-gray-600 mt-2">{overviewSubtitle}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -230,7 +222,10 @@ export default function DashboardHome() {
                 {stat.label}
               </span>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mt-2">
+            <p
+              className="text-3xl font-bold text-gray-800 mt-2"
+              data-testid={stat.testId}
+            >
               {stat.value}
             </p>
           </div>

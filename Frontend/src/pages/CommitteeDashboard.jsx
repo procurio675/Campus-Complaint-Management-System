@@ -17,6 +17,7 @@ import {
 import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
+import StatusToast from "../components/StatusToast.jsx";
 import {
   BarChart,
   Bar,
@@ -58,25 +59,30 @@ const SidebarLink = ({ to, icon, label }) => {
   );
 };
 
-// Logo Component (matching student dashboard)
-const Logo = () => (
-  <div className="flex items-center gap-2">
-    <div className="bg-blue-600 p-2 rounded-full text-white">
-      <span className="font-bold text-xl">CC</span>
+const Logo = ({ onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex items-center gap-3 focus:outline-none group"
+    aria-label="Go to committee dashboard"
+  >
+    <div className="bg-blue-600 h-11 w-11 rounded-full text-white font-black text-lg tracking-tight flex items-center justify-center shadow-md">
+      CCR
     </div>
-    <div className="flex flex-col">
-      <span className="text-gray-700 font-semibold text-lg">CCMS</span>
-      <span className="text-gray-500 text-sm font-medium">Committee Portal</span>
-    </div>
-  </div>
+    <span className="text-gray-500 text-sm font-semibold group-hover:text-gray-700 transition-colors">
+      Committee Portal
+    </span>
+  </button>
 );
 
 // Main Sidebar Component
 const CommitteeSidebar = () => {
+  const navigate = useNavigate();
+
   return (
     <aside className="fixed top-0 left-0 w-64 h-full bg-white border-r flex flex-col z-10">
       <div className="h-20 flex items-center px-6 border-b">
-        <Logo />
+        <Logo onClick={() => navigate("/committee-dashboard")} />
       </div>
       <nav className="flex-1 p-4 space-y-2">
         <SidebarLink
@@ -118,6 +124,7 @@ const AssignedComplaintsPage = () => {
   const [statusDescription, setStatusDescription] = useState("");
   const [updating, setUpdating] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [toast, setToast] = useState(null);
 
   // --- STATE FOR SEARCH, SORTING, AND FILTERING ---
   const [sortConfig, setSortConfig] = useState(null); 
@@ -129,6 +136,10 @@ const AssignedComplaintsPage = () => {
   const [tempFilters, setTempFilters] = useState(filters);
   const [searchTerm, setSearchTerm] = useState(""); 
   // --- END STATE ---
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+  };
 
   useEffect(() => {
     fetchAssignedComplaints();
@@ -170,7 +181,7 @@ const AssignedComplaintsPage = () => {
 
   const handleStatusUpdate = async () => {
     if (!newStatus || !statusDescription.trim()) {
-      alert("Please select a status and provide a description.");
+      showToast("Please select a status and provide a description.", "error");
       return;
     }
 
@@ -201,12 +212,13 @@ const AssignedComplaintsPage = () => {
       setNewStatus("");
       setStatusDescription("");
       
-      alert("Status updated successfully!");
+      showToast("Status updated successfully!", "success");
     } catch (err) {
       console.error("Update Status Error:", err);
-      alert(
+      showToast(
         err?.response?.data?.message ||
-          "Failed to update status. Please try again."
+          "Failed to update status. Please try again.",
+        "error"
       );
     } finally {
       setUpdating(false);
@@ -414,21 +426,30 @@ const AssignedComplaintsPage = () => {
     setTempFilters(defaultFilters);
     setShowFilterModal(false);
   };
+
+  const toastNode = (
+    <StatusToast toast={toast} onClose={() => setToast(null)} />
+  );
  
   if (loading) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-lg">
+      <>
+        {toastNode}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Assigned Complaints</h1>
         <div className="flex items-center justify-center py-12">
           <div className="text-gray-500">Loading assigned complaints...</div>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-lg">
+      <>
+        {toastNode}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Assigned Complaints</h1>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
@@ -439,12 +460,15 @@ const AssignedComplaintsPage = () => {
             Try again
           </button>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
  
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
+    <>
+      {toastNode}
+      <div className="bg-white p-6 rounded-xl shadow-lg">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Assigned Complaints</h1>
@@ -480,8 +504,9 @@ const AssignedComplaintsPage = () => {
                             sortComplaints(key, direction);
                         } else {
                             setSortConfig(null);
-                        }
-                    }}
+                    }
+                  }}
+
                     className="px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium cursor-pointer"
                 >
                     <option value="" className="text-gray-500">{getSortLabel()}</option>
@@ -840,6 +865,7 @@ const AssignedComplaintsPage = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
@@ -852,6 +878,7 @@ const AnalyticsDashboardPage = () => {
   const [showGeneratingModal, setShowGeneratingModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [pdfBlob, setPdfBlob] = useState(null);
+  const [toast, setToast] = useState(null);
 
   // read committeeType from query param `ct` (admin navigation) or stored user
   const location = useLocation();
@@ -869,6 +896,14 @@ const AnalyticsDashboardPage = () => {
   const CACHE_KEY = "committee_analytics";
   const [complaintsList, setComplaintsList] = useState([]);
   const navigate = useNavigate();
+
+  const showToast = (message, type = "info") => {
+    setToast({ message, type });
+  };
+
+  const toastNode = (
+    <StatusToast toast={toast} onClose={() => setToast(null)} />
+  );
 
   const readCache = (ct) => {
     try {
@@ -905,7 +940,7 @@ const AnalyticsDashboardPage = () => {
 
   } catch (error) {
     console.error("PDF generation failed:", error);
-    alert("Failed to generate report. Please try again.");
+    showToast("Failed to generate report. Please try again.", "error");
     setShowGeneratingModal(false);
   }
 };
@@ -1107,7 +1142,9 @@ const AnalyticsDashboardPage = () => {
     : (metrics?.monthlyResolved != null ? metrics.monthlyResolved : null);
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
+    <>
+      {toastNode}
+      <div className="bg-white p-6 rounded-xl shadow-lg">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">{committeeType || 'Committee'} Analytics</h1>
@@ -1335,6 +1372,7 @@ const AnalyticsDashboardPage = () => {
       )}
 
     </div>
+    </>
   );
 };
 
@@ -1537,7 +1575,7 @@ const CommitteeDashboardHome = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-800">Committee Dashboard</h1>
         <p className="text-gray-600 mt-2">
-          Welcome. You have {stats.pending} complaint{stats.pending !== 1 ? 's' : ''} pending review.
+          {stats.pending} complaint{stats.pending !== 1 ? 's' : ''} awaiting action.
         </p>
       </div>
 

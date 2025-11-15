@@ -1670,6 +1670,7 @@ export default function StudentDashboard() {
                   }
                 }}
                 className="relative text-gray-500 hover:text-gray-800 transition-colors"
+                data-testid="notification-bell"
               >
                 <FaBell size={22} />
                 {unreadCount > 0 && (

@@ -23,6 +23,7 @@ import {
 import AdminSidebar from "../components/AdminSidebar";
 import ProfilePage from "./ProfilePage";
 import CreateAccountPage from "./CreateAccountPage"; // <--- 1. IMPORT ADDED
+import StatusToast from "../components/StatusToast.jsx";
 
 // Admin Dashboard Home with real-time complaints
 const AdminDashboardHome = () => {
@@ -227,9 +228,9 @@ const AdminDashboardHome = () => {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-800">Welcome, College Admin 👋</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Complaint Overview</h1>
         <p className="text-gray-600 mt-2">
-          Here's an overview of your recent complaint activity.
+          Here's an overview of the most recent complaint activity.
         </p>
       </div>
 
@@ -337,11 +338,16 @@ const AllComplaintsPage = () => {
   });
   const [tempFilters, setTempFilters] = useState(filters);
   const [searchTerm, setSearchTerm] = useState("");
+  const [toast, setToast] = useState(null);
 
 
   useEffect(() => {
     fetchAllComplaints();
   }, []);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+  };
 
   const fetchAllComplaints = async () => {
     try {
@@ -379,7 +385,7 @@ const AllComplaintsPage = () => {
 
   const handleStatusUpdate = async () => {
     if (!newStatus || !statusDescription.trim()) {
-      alert("Please select a status and provide a description.");
+      showToast("Please select a status and provide a description.", "error");
       return;
     }
 
@@ -408,12 +414,13 @@ const AllComplaintsPage = () => {
       setNewStatus("");
       setStatusDescription("");
 
-      alert("Status updated successfully!");
+      showToast("Status updated successfully!", "success");
     } catch (err) {
       console.error("Update Status Error:", err);
-      alert(
+      showToast(
         err?.response?.data?.message ||
-          "Failed to update status. Please try again."
+          "Failed to update status. Please try again.",
+        "error"
       );
     } finally {
       setUpdating(false);
@@ -602,21 +609,29 @@ const AllComplaintsPage = () => {
     return "Sort By";
   };
 
+  const toastNode = (
+    <StatusToast toast={toast} onClose={() => setToast(null)} />
+  );
 
   if (loading) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-lg">
+      <>
+        {toastNode}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">All Complaints</h1>
         <div className="flex items-center justify-center py-12">
           <div className="text-gray-500">Loading complaints...</div>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-lg">
+      <>
+        {toastNode}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">All Complaints</h1>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
@@ -627,12 +642,15 @@ const AllComplaintsPage = () => {
             Try again
           </button>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
+    <>
+      {toastNode}
+      <div className="bg-white p-6 rounded-xl shadow-lg">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">All Complaints</h1>
@@ -1020,6 +1038,7 @@ const AllComplaintsPage = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 

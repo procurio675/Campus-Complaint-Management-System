@@ -622,10 +622,11 @@ export const upvoteComplaint = async (req, res) => {
 export const getComplaint = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id;
+    const user = req.user;
 
-    const complaint = await Complaint.findOne({ _id: id, userId })
+    const complaint = await Complaint.findById(id)
       .populate('userId', 'name email')
+      .populate('statusHistory.updatedBy', 'name email')
       .select('-__v');
 
     if (!complaint) {
@@ -634,8 +635,33 @@ export const getComplaint = async (req, res) => {
       });
     }
 
+    const isOwner = complaint.userId?._id
+      ? complaint.userId._id.toString() === user._id.toString()
+      : complaint.userId?.toString() === user._id.toString();
+
+    const canView =
+      isOwner ||
+      complaint.type === 'general' ||
+      user.role === 'admin' ||
+      user.role === 'committee';
+
+    if (!canView) {
+      return res.status(403).json({
+        message: 'You do not have permission to view this complaint',
+      });
+    }
+
+    const complaintData = complaint.toObject();
+
+    if (!isOwner && complaint.isAnonymous) {
+      complaintData.userId = {
+        name: 'Anonymous',
+        email: null,
+      };
+    }
+
     res.status(200).json({
-      complaint,
+      complaint: complaintData,
     });
   } catch (error) {
     console.error('Get Complaint Error:', error);

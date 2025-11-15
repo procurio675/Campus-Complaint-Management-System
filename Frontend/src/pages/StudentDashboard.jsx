@@ -9,8 +9,61 @@ import API_BASE_URL from "../config/api.js";
 import Sidebar from "../components/Sidebar";
 import DashboardHome from "./DashboardHome";
 import ProfilePage from "./ProfilePage";
+import ComplaintsTable from "../components/ComplaintsTable";
 
 import AddComplaintPage from "./AddComplaintPage"; 
+
+const DeleteConfirmationModal = ({
+  isOpen,
+  title = "Delete Complaint",
+  message,
+  confirmText = "Delete",
+  cancelText = "Cancel",
+  onConfirm,
+  onCancel,
+  loading = false,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between">
+          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-gray-400 transition hover:text-gray-600"
+            aria-label="Close delete confirmation"
+          >
+            <FaTimes />
+          </button>
+        </div>
+        <p className="mb-6 text-sm text-gray-600">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={loading}
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition ${
+              loading ? "bg-red-300" : "bg-red-600 hover:bg-red-700"
+            }`}
+          >
+            {loading ? "Deleting..." : confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MyComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
@@ -19,6 +72,9 @@ const MyComplaintsPage = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [upvoting, setUpvoting] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "descending" }); 
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState({
@@ -29,6 +85,25 @@ const MyComplaintsPage = () => {
   const [tempFilters, setTempFilters] = useState(filters);
   const [searchTerm, setSearchTerm] = useState(""); 
   // --- END UPDATED STATE ---
+
+  const currentUserId = useMemo(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("ccms_user"));
+      return stored?._id || null;
+    } catch (err) {
+      return null;
+    }
+  }, []);
+
+  const resolveIdString = (value) => {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+      if (value._id) return value._id.toString();
+      if (value.id) return value.id.toString();
+    }
+    return value.toString ? value.toString() : null;
+  };
 
   useEffect(() => {
     fetchComplaints();
@@ -66,7 +141,25 @@ const MyComplaintsPage = () => {
         }
       );
 
-      setComplaints(data.complaints || []);
+      const normalizedComplaints = (data.complaints || []).map((complaint) => {
+        const upvotesArray = Array.isArray(complaint?.upvotes)
+          ? complaint.upvotes
+          : [];
+        const upvoteCount = complaint?.upvoteCount ?? upvotesArray.length;
+        const hasUpvoted = currentUserId
+          ? upvotesArray.some(
+              (upvoteId) => resolveIdString(upvoteId) === currentUserId
+            )
+          : false;
+
+        return {
+          ...complaint,
+          upvoteCount,
+          hasUpvoted,
+        };
+      });
+
+      setComplaints(normalizedComplaints);
     } catch (err) {
       console.error("Fetch Complaints Error:", err);
       setError(
@@ -78,12 +171,67 @@ const MyComplaintsPage = () => {
     }
   };
 
-  const handleDelete = async (complaintId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this complaint? This action cannot be undone."
-    );
+  const openDeleteModal = (complaintId) => {
+    const target = complaints.find((complaint) => complaint?._id === complaintId) || null;
+    setDeleteTarget(target);
+    setActionError("");
+    setShowDeleteModal(true);
+  };
 
-    if (!confirmDelete) {
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeleteTarget(null);
+  };
+
+  const handleUpvote = async (complaintId) => {
+    if (!complaintId) return;
+
+    try {
+      setUpvoting((prev) => ({ ...prev, [complaintId]: true }));
+
+      const token = localStorage.getItem("ccms_token");
+      if (!token) {
+        setActionError("You are not logged in. Please login again.");
+        return;
+      }
+
+      const { data } = await axios.post(
+        `${API_BASE_URL}/complaints/${complaintId}/upvote`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setComplaints((prevComplaints) =>
+        prevComplaints.map((complaint) =>
+          complaint._id === complaintId
+            ? {
+                ...complaint,
+                upvoteCount: data.upvoteCount,
+                hasUpvoted: data.hasUpvoted,
+              }
+            : complaint
+        )
+      );
+    } catch (err) {
+      console.error("Upvote Complaint Error:", err);
+      const message =
+        err?.response?.data?.message ||
+        "Failed to upvote the complaint. Please try again.";
+      setActionError(message);
+    } finally {
+      setUpvoting((prev) => ({ ...prev, [complaintId]: false }));
+    }
+  };
+
+  const handleDelete = async () => {
+    const complaintId = deleteTarget?._id;
+    if (!complaintId) {
+      closeDeleteModal();
       return;
     }
 
@@ -106,6 +254,7 @@ const MyComplaintsPage = () => {
         prevComplaints.filter((complaint) => complaint._id !== complaintId)
       );
       setActionMessage("Complaint deleted successfully.");
+      closeDeleteModal();
     } catch (err) {
       console.error("Delete Complaint Error:", err);
       setActionMessage("");
@@ -417,77 +566,26 @@ const MyComplaintsPage = () => {
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Complaint ID
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Title
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Committee
-                </th>
-                
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Status
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Date
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedAndFilteredComplaints.map((complaint) => (
-                <tr
-                  key={complaint?._id || Math.random()}
-                  className="border-b hover:bg-gray-50 transition-colors"
-                >
-                  <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint?._id)}
-                  </td>
-                  <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {complaint?.title}
-                  </td>
-                  <td className="p-3 text-gray-700">{complaint.category}</td>
-                  
-                  <td className="p-3">{getStatusBadge(complaint.status)}</td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {formatDate(complaint?.createdAt)}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Link
-                        to={`/student-dashboard/complaint/${complaint?._id}`}
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-sm"
-                      >
-                        <FaEye />
-                        View
-                      </Link>
-                      <button
-                        onClick={() => complaint && handleDelete(complaint._id)}
-                        disabled={deletingId === complaint?._id}
-                        className={`inline-flex items-center gap-1 text-sm font-medium transition-colors ${
-                          deletingId === complaint?._id
-                            ? "text-red-400 cursor-not-allowed"
-                            : "text-red-600 hover:text-red-800"
-                        }`}
-                      >
-                        <FaTrash />
-                        {deletingId === complaint?._id ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ComplaintsTable
+          complaints={sortedAndFilteredComplaints}
+          config={{
+            showId: true,
+            showTitle: true,
+            showCommittee: true,
+            showStatus: true,
+            showDate: true,
+            showUpvotes: true,
+            showActions: true,
+            actionType: "view-delete",
+            onDelete: openDeleteModal,
+            onUpvote: handleUpvote,
+            upvoting: upvoting,
+            deletingId: deletingId,
+            viewLinkBase: "/student-dashboard/complaint",
+            emptyMessage: "You haven't filed any complaints yet, or none match your filters.",
+            canDeleteComplaint: (complaint) => complaint?.status === "pending",
+          }}
+        />
       )}
       
       {/* FILTER MODAL (PRIORITY ADDED) */}
@@ -595,6 +693,15 @@ const MyComplaintsPage = () => {
           </div>
         </div>
       )}
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        title="Delete Complaint"
+        message={`Are you sure you want to delete "${deleteTarget?.title || "this complaint"}"? This action cannot be undone.`}
+        onCancel={closeDeleteModal}
+        onConfirm={handleDelete}
+        loading={Boolean(deletingId && deleteTarget && deletingId === deleteTarget._id)}
+      />
     </div>
   );
 };
@@ -604,10 +711,28 @@ const ComplaintDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
 
   // Get complaint ID from URL
   const complaintId = window.location.pathname.split('/').pop();
+
+  const currentUserId = useMemo(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("ccms_user"));
+      return stored?._id || null;
+    } catch (err) {
+      return null;
+    }
+  }, []);
+
+  const isOwner = useMemo(() => {
+    if (!complaint || !currentUserId) return false;
+    const complaintUserId = typeof complaint.userId === "string"
+      ? complaint.userId
+      : complaint.userId?._id || complaint.userId?.id || "";
+    return complaintUserId && complaintUserId.toString() === currentUserId;
+  }, [complaint, currentUserId]);
 
   useEffect(() => {
     fetchComplaintDetails();
@@ -638,21 +763,37 @@ const ComplaintDetailPage = () => {
       setComplaint(data.complaint);
     } catch (err) {
       console.error("Fetch Complaint Details Error:", err);
-      setError(
-        err?.response?.data?.message ||
-          "Failed to fetch complaint details. Please try again."
-      );
+      if (err?.response?.status === 404) {
+        setError(
+          err?.response?.data?.message ||
+            "This complaint either does not exist or you do not have access to view it."
+        );
+      } else {
+        setError(
+          err?.response?.data?.message ||
+            "Failed to fetch complaint details. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this complaint? This action cannot be undone."
-    );
+    if (!complaint?._id) {
+      setShowDeleteModal(false);
+      return;
+    }
 
-    if (!confirmDelete) {
+    if (complaint?.status !== "pending") {
+      setError("Only pending complaints can be deleted.");
+      setShowDeleteModal(false);
+      return;
+    }
+
+    if (!isOwner) {
+      setError("You can only delete complaints that you created.");
+      setShowDeleteModal(false);
       return;
     }
 
@@ -670,6 +811,7 @@ const ComplaintDetailPage = () => {
           "Content-Type": "application/json",
         },
       });
+      setShowDeleteModal(false);
       navigate("/student-dashboard/my-complaints", { replace: true });
     } catch (err) {
       console.error("Delete Complaint Error:", err);
@@ -736,10 +878,10 @@ const ComplaintDetailPage = () => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error || "Complaint not found"}</p>
           <button
-            onClick={() => navigate("/student-dashboard/my-complaints")}
+            onClick={() => navigate("/student-dashboard/all-complaints")}
             className="mt-2 text-sm text-red-600 hover:underline"
           >
-            Back to My Complaints
+            Back to All Complaints
           </button>
         </div>
       </div>
@@ -759,23 +901,28 @@ const ComplaintDetailPage = () => {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/student-dashboard/my-complaints")}
+              onClick={() => navigate("/student-dashboard/all-complaints")}
               className="text-sm text-blue-600 hover:text-blue-800 font-medium"
             >
-              ← Back to My Complaints
+              ← Back to All Complaints
             </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                deleting
-                  ? "bg-red-300 text-white cursor-not-allowed"
-                  : "bg-red-600 text-white hover:bg-red-700"
-              }`}
-            >
-              <FaTrash size={14} />
-              {deleting ? "Deleting..." : "Delete"}
-            </button>
+            {complaint.status === "pending" && isOwner && (
+              <button
+                onClick={() => {
+                  setError("");
+                  setShowDeleteModal(true);
+                }}
+                disabled={deleting}
+                className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  deleting
+                    ? "bg-red-300 text-white cursor-not-allowed"
+                    : "bg-red-600 text-white hover:bg-red-700"
+                }`}
+              >
+                <FaTrash size={14} />
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -845,6 +992,19 @@ const ComplaintDetailPage = () => {
           </p>
         </div>
       )}
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        title="Delete Complaint"
+        message={`Are you sure you want to delete "${complaint?.title || "this complaint"}"? This action cannot be undone.`}
+        onCancel={() => {
+          if (!deleting) {
+            setShowDeleteModal(false);
+          }
+        }}
+        onConfirm={handleDelete}
+        loading={deleting}
+      />
     </div>
   );
 };
@@ -946,7 +1106,8 @@ const AllComplaintsPage = () => {
         });
 
         // Re-sort complaints by upvote count (maintaining sorting preference)
-        const sorted = [...updatedComplaints].sort((a, b) => {
+        const sorted = [...updatedComplaints]
+          .sort((a, b) => {
           const aUpvotes = a.upvoteCount || a.upvotes?.length || 0;
           const bUpvotes = b.upvoteCount || b.upvotes?.length || 0;
           
@@ -1287,72 +1448,23 @@ const AllComplaintsPage = () => {
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Complaint ID
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Title
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Committee
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Status
-                </th>
-                
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Date
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Upvotes
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedAndFilteredComplaints.map((complaint) => (
-                <tr
-                  key={complaint?._id || Math.random()}
-                  className="border-b hover:bg-gray-50 transition-colors"
-                >
-                  <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint?._id)}
-                  </td>
-                  <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {complaint?.title}
-                  </td>
-                  <td className="p-3 text-gray-700">{complaint.category}</td>
-                  
-                  <td className="p-3">{getStatusBadge(complaint.status)}</td>
-                  
-                  <td className="p-3 text-gray-600 text-sm">
-                    {formatDate(complaint?.createdAt)}
-                  </td>
-                  <td className="p-3 text-gray-600 text-sm text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span>{complaint?.upvoteCount || complaint?.upvotes?.length || 0}</span>
-                      <button
-                        onClick={() => complaint && handleUpvote(complaint._id)}
-                        disabled={upvoting[complaint?._id]}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-colors ${
-                          complaint?.hasUpvoted
-                            ? "bg-blue-600 text-white hover:bg-blue-700"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        } ${upvoting[complaint?._id] ? "opacity-50 cursor-not-allowed" : ""}`}
-                        title={complaint?.hasUpvoted ? "Remove upvote" : "Upvote this complaint"}
-                      >
-                        <FaThumbsUp size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ComplaintsTable
+          complaints={sortedAndFilteredComplaints}
+          config={{
+            showId: true,
+            showTitle: true,
+            showCommittee: true,
+            showStatus: true,
+            showDate: true,
+            showUpvotes: true,
+            showActions: true,
+            actionType: "view-only",
+            viewLinkBase: "/student-dashboard/complaint",
+            onUpvote: handleUpvote,
+            upvoting: upvoting,
+            emptyMessage: "No public complaints found matching current criteria.",
+          }}
+        />
       )}
 
       {/* FILTER MODAL */}

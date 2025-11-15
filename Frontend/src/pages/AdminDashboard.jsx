@@ -24,6 +24,7 @@ import AdminSidebar from "../components/AdminSidebar";
 import ProfilePage from "./ProfilePage";
 import CreateAccountPage from "./CreateAccountPage"; // <--- 1. IMPORT ADDED
 import StatusToast from "../components/StatusToast.jsx";
+import ComplaintsTable from "../components/ComplaintsTable";
 
 // Admin Dashboard Home with real-time complaints
 const AdminDashboardHome = () => {
@@ -268,52 +269,18 @@ const AdminDashboardHome = () => {
             View All →
           </Link>
         </div>
-        {recentComplaints.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
-            No complaints have been filed yet.
-          </p>
-        ) : (
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Complaint ID
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Title
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600 w-36">
-                  Status
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Filed By
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentComplaints.map((complaint) => (
-                <tr key={complaint._id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint._id)}
-                  </td>
-                  <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {complaint.title}
-                  </td>
-                  <td className="p-3 whitespace-nowrap">{getStatusBadge(complaint.status)}</td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {getUserName(complaint.userId)}
-                  </td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {formatDate(complaint.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <ComplaintsTable
+          complaints={recentComplaints}
+          config={{
+            showId: true,
+            showTitle: true,
+            showStatus: true,
+            showFiledBy: true,
+            showDate: true,
+            showActions: false,
+            emptyMessage: "No complaints have been filed yet.",
+          }}
+        />
       </div>
     </div>
   );
@@ -732,71 +699,23 @@ const AllComplaintsPage = () => {
         </div>
       </div>
 
-      {sortedAndFilteredComplaints.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No complaints found matching current criteria.</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="p-3 text-sm font-semibold text-gray-600">ID</th>
-                <th className="p-3 text-sm font-semibold text-gray-600">Title</th>
-                <th className="p-3 text-sm font-semibold text-gray-600">Priority</th>
-                <th className="p-3 text-sm font-semibold text-gray-600 w-36">Status</th>
-                <th className="p-3 text-sm font-semibold text-gray-600">Filed By</th>
-                <th className="p-3 text-sm font-semibold text-gray-600">Date</th>
-                <th className="p-3 text-sm font-semibold text-gray-600">Committee</th>
-                <th className="p-3 text-sm font-semibold text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedAndFilteredComplaints.map((complaint) => (
-                <tr
-
-                  key={complaint?._id || Math.random()}
-                  className="border-b hover:bg-gray-50 transition-colors"
-                >
-                  <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint?._id)}
-                  </td>
-                  <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {complaint?.title}
-                  </td>
-                  <td className="p-3">{getPriorityBadge(complaint?.priority)}</td>
-                  <td className="p-3 whitespace-nowrap">{getStatusBadge(complaint?.status)}</td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {complaint?.userId?.name || "Unknown"}
-                  </td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {formatDate(complaint?.createdAt)}
-                  </td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {complaint?.category}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openStatusModal(complaint)}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                      >
-                        Update Status
-                      </button>
-                      <button
-                        onClick={() => openViewModal(complaint)}
-                        className="px-3 py-1 bg-white border border-gray-200 text-blue-600 text-sm rounded hover:bg-gray-50"
-                      >
-                        View
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <ComplaintsTable
+        complaints={sortedAndFilteredComplaints}
+        config={{
+          showId: true,
+          showTitle: true,
+          showPriority: true,
+          showStatus: true,
+          showFiledBy: true,
+          showDate: true,
+          showCommittee: true,
+          showActions: true,
+          actionType: "admin-actions",
+          onUpdateStatus: openStatusModal,
+          onView: openViewModal,
+          emptyMessage: "No complaints found matching current criteria.",
+        }}
+      />
 
       {showViewModal && selectedComplaint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

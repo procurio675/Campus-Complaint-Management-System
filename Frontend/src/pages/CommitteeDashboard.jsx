@@ -36,6 +36,7 @@ import {
 
 // Import shared pages (like Profile)
 import ProfilePage from "./ProfilePage";
+import ComplaintsTable from "../components/ComplaintsTable";
 
 // --- 1. Sidebar Component (defined in the same file) ---
 
@@ -551,93 +552,23 @@ const AssignedComplaintsPage = () => {
         </div>
       </div>
 
-      {sortedAndFilteredComplaints.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg mb-4">
-            No complaints found matching current criteria.
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Complaint ID
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Title
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Upvotes
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Priority
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Status
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Filed By
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Date
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedAndFilteredComplaints.map((complaint) => (
-                <tr
-                  key={complaint?._id || Math.random()}
-                  className="border-b hover:bg-gray-50 transition-colors"
-                >
-                  <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint?._id)}
-                  </td>
-                  <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {/* CRASH FIX: Optional chaining used here */}
-                    {complaint?.title}
-                  </td>
-                  <td className="p-3 text-gray-700 text-sm text-center">
-                    {/* CRASH FIX: Optional chaining used here */}
-                    {complaint?.upvoteCount || complaint?.upvotes?.length || 0}
-                  </td>
-                  <td className="p-3">{getPriorityBadge(complaint?.priority)}</td>
-                  <td className="p-3">{getStatusBadge(complaint?.status)}</td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {/* CRASH FIX: Optional chaining used here */}
-                    {getUserName(complaint?.userId)}
-                  </td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {/* CRASH FIX: Optional chaining used here */}
-                    {formatDate(complaint?.createdAt)}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
-                      <button
-                        // CRASH FIX: Ensure complaint object is safe before passing to modal
-                        onClick={() => complaint && openStatusModal(complaint)}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                      >
-                        Update Status
-                      </button>
-                      <button
-                        onClick={() => complaint && openViewModal(complaint)}
-                        className="px-3 py-1 bg-white border border-gray-200 text-blue-600 text-sm rounded hover:bg-gray-50"
-                      >
-                        View
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <ComplaintsTable
+        complaints={sortedAndFilteredComplaints}
+        config={{
+          showId: true,
+          showTitle: true,
+          showUpvotes: true,
+          showPriority: true,
+          showStatus: true,
+          showFiledBy: true,
+          showDate: true,
+          showActions: true,
+          actionType: "committee-actions",
+          onUpdateStatus: openStatusModal,
+          onView: openViewModal,
+          emptyMessage: "No complaints found matching current criteria.",
+        }}
+      />
 
       {showStatusModal && selectedComplaint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1613,59 +1544,18 @@ const CommitteeDashboardHome = () => {
             View All →
           </Link>
         </div>
-        {recentComplaints.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
-            No complaints assigned to your committee yet.
-          </p>
-        ) : (
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Complaint ID
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Title
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Status
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Filed By
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentComplaints.map((complaint) => (
-                <tr key={complaint._id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint._id)}
-                  </td>
-                  <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {complaint.title}
-                  </td>
-                  <td className="p-3">{getStatusBadge(complaint.status)}</td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {getUserName(complaint.userId)}
-                  </td>
-                  <td className="p-3 text-gray-600 text-sm">
-                    {formatDate(complaint.createdAt)}
-                  </td>
-                  <td className="p-3">
-                    <Link
-                      to={`/committee-dashboard/complaint/${complaint._id}`}
-                      className="text-blue-600 font-medium hover:underline text-sm"
-                    >
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <ComplaintsTable
+          complaints={recentComplaints}
+          config={{
+            showId: true,
+            showTitle: true,
+            showStatus: true,
+            showFiledBy: true,
+            showDate: true,
+            showActions: false,
+            emptyMessage: "No complaints assigned to your committee yet.",
+          }}
+        />
       </div>
     </div>
   );

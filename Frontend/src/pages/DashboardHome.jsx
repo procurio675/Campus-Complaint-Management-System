@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
+import ComplaintsTable from "../components/ComplaintsTable";
 
 const StatusBadge = ({ status }) => {
   const statusStyles = {
@@ -81,6 +82,7 @@ export default function DashboardHome() {
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [upvoting, setUpvoting] = useState({});
   const overviewTitle = "Complaint Overview";
   const overviewSubtitle = "Here's an overview of your recent complaint activity.";
 
@@ -108,7 +110,7 @@ export default function DashboardHome() {
             "Content-Type": "application/json",
           },
         }),
-        axios.get(`${API_BASE_URL}/complaints/my-complaints`, {
+        axios.get(`${API_BASE_URL}/complaints/public`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -117,8 +119,22 @@ export default function DashboardHome() {
       ]);
 
       setStats(statsResponse.data);
-      // Get only the 5 most recent complaints
-      setRecentComplaints(complaintsResponse.data.complaints?.slice(0, 5) || []);
+      // Get only the 10 most recent complaints, sorted by date (newest first)
+      const allComplaints = complaintsResponse.data.complaints || [];
+      const sortedComplaints = [...allComplaints].sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA; // Newest first
+      });
+      const normalizedRecent = sortedComplaints
+        .slice(0, 10)
+        .map((complaint) => ({
+          ...complaint,
+          upvoteCount:
+            complaint?.upvoteCount ?? complaint?.upvotes?.length ?? 0,
+          hasUpvoted: complaint?.hasUpvoted ?? false,
+        }));
+      setRecentComplaints(normalizedRecent);
     } catch (err) {
       console.error("Fetch Dashboard Data Error:", err);
       setError(
@@ -138,6 +154,51 @@ export default function DashboardHome() {
       month: "short",
       day: "numeric",
     });
+  };
+
+  const handleUpvote = async (complaintId) => {
+    if (!complaintId) return;
+
+    try {
+      setUpvoting((prev) => ({ ...prev, [complaintId]: true }));
+
+      const token = localStorage.getItem("ccms_token");
+      if (!token) {
+        alert("You are not logged in. Please login again.");
+        return;
+      }
+
+      const { data } = await axios.post(
+        `${API_BASE_URL}/complaints/${complaintId}/upvote`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setRecentComplaints((prev) =>
+        prev.map((complaint) =>
+          complaint._id === complaintId
+            ? {
+                ...complaint,
+                upvoteCount: data.upvoteCount,
+                hasUpvoted: data.hasUpvoted,
+              }
+            : complaint
+        )
+      );
+    } catch (err) {
+      console.error("Dashboard Upvote Error:", err);
+      const message =
+        err?.response?.data?.message ||
+        "Failed to upvote complaint. Please try again.";
+      alert(message);
+    } finally {
+      setUpvoting((prev) => ({ ...prev, [complaintId]: false }));
+    }
   };
 
   const getComplaintId = (id) => {
@@ -244,67 +305,33 @@ export default function DashboardHome() {
             View All →
           </Link>
         </div>
-        {recentComplaints.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
-            You haven't filed any complaints yet.{" "}
-            <Link
-              to="/student-dashboard/add-complaint"
-              className="text-blue-600 hover:underline"
-            >
-              File your first complaint
-            </Link>
-          </p>
-        ) : (
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Complaint ID
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Title
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Committee
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Status
-                </th>
-                <th className="p-3 text-sm font-semibold text-gray-600">Date</th>
-                <th className="p-3 text-sm font-semibold text-gray-600">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentComplaints.map((complaint) => (
-                <tr key={complaint._id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="p-3 text-gray-700 font-mono text-sm">
-                    {getComplaintId(complaint._id)}
-                  </td>
-                  <td className="p-3 text-gray-700 max-w-xs truncate">
-                    {complaint.title}
-                  </td>
-                  <td className="p-3 text-gray-700">{complaint.category}</td>
-                  <td className="p-3">
-                    <StatusBadge status={complaint.status} />
-                  </td>
-                  <td className="p-3 text-gray-700 text-sm">
-                    {formatDate(complaint.createdAt)}
-                  </td>
-                  <td className="p-3">
-                    <Link
-                      to={`/student-dashboard/complaint/${complaint._id}`}
-                      className="text-blue-600 font-medium hover:underline text-sm"
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <ComplaintsTable
+          complaints={recentComplaints}
+          config={{
+            showId: true,
+            showTitle: true,
+            showCommittee: true,
+            showStatus: true,
+            showUpvotes: true,
+            showDate: true,
+            showActions: true,
+            actionType: "view-only",
+            viewLinkBase: "/student-dashboard/complaint",
+            onUpvote: handleUpvote,
+            upvoting: upvoting,
+            emptyMessage: (
+              <>
+                You haven't filed any complaints yet.{" "}
+                <Link
+                  to="/student-dashboard/add-complaint"
+                  className="text-blue-600 hover:underline"
+                >
+                  File your first complaint
+                </Link>
+              </>
+            ),
+          }}
+        />
       </div>
     </div>
   );

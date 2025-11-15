@@ -22,7 +22,7 @@ const COMMITTEE_CATEGORY_MAP = {
   'Student Placement': 'Student Placement',
 };
 
-const resolveCommitteeCategory = (committeeType) =>
+export const resolveCommitteeCategory = (committeeType) =>
   COMMITTEE_CATEGORY_MAP[committeeType] || committeeType;
 
 /**

@@ -96,12 +96,6 @@ const CommitteeSidebar = () => {
           icon={<FaChartBar size={18} />}
           label="Analytics"
         />
-        {/* C5: Generate monthly reports */}
-        <SidebarLink
-          to="/committee-dashboard/reports"
-          icon={<FaFileAlt size={18} />}
-          label="Reports"
-        />
       </nav>
       
       <div className="p-4 border-t">
@@ -855,6 +849,9 @@ const AnalyticsDashboardPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [showGeneratingModal, setShowGeneratingModal] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState(null);
 
   // read committeeType from query param `ct` (admin navigation) or stored user
   const location = useLocation();
@@ -883,6 +880,36 @@ const AnalyticsDashboardPage = () => {
       return null;
     }
   };
+
+  const handleGenerateReport = async () => {
+  setShowGeneratingModal(true);
+  setShowDownloadModal(false);
+  setPdfBlob(null);
+
+  try {
+    const token = localStorage.getItem("ccms_token");
+
+    const response = await axios.get(
+      `${API_BASE_URL}/reports/committee-monthly?committeeType=${committeeType}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob", // important for PDF
+      }
+    );
+
+    setPdfBlob(response.data);
+
+    // switch modals
+    setShowGeneratingModal(false);
+    setShowDownloadModal(true);
+
+  } catch (error) {
+    console.error("PDF generation failed:", error);
+    alert("Failed to generate report. Please try again.");
+    setShowGeneratingModal(false);
+  }
+};
+
 
   const writeCache = (ct, data) => {
     try {
@@ -1252,19 +1279,64 @@ const AnalyticsDashboardPage = () => {
         </div>
         </div>
       )}
+
+      {/* Generate Report Button */}
+      <div className="mt-10 flex justify-center">
+        <button
+          onClick={handleGenerateReport}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700"
+        >
+          Generate Report
+        </button>
+      </div>
+
+      {/* Report Generation Modals */}
+      {showGeneratingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl text-center w-80">
+            <FaSpinner className="animate-spin text-3xl mx-auto text-blue-600" />
+            <p className="mt-4 text-gray-700 font-medium">Generating report...</p>
+          </div>
+        </div>
+      )}
+
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-80 text-center relative">
+
+            <h2 className="text-xl font-semibold text-gray-900">Report Generated</h2>
+            <p className="mt-2 text-gray-600">Your PDF report is ready.</p>
+
+            <button
+              onClick={() => {
+                const url = window.URL.createObjectURL(
+                  new Blob([pdfBlob], { type: "application/pdf" })
+                );
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "Report.pdf";
+                a.click();
+                window.URL.revokeObjectURL(url);
+              }}
+              className="mt-5 w-full py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+            >
+              Download Report
+            </button>
+
+            <button
+              onClick={() => setShowDownloadModal(false)}
+              className="mt-3 block w-full text-gray-600 hover:text-gray-800 text-sm font-medium"
+            >
+              Close
+            </button>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
-
-// C5: Generate monthly committee reports (Convener)
-const ReportsPage = () => (
-  <div className="bg-white p-6 rounded-xl shadow-lg">
-    <h1 className="text-2xl font-bold">Generate Reports</h1>
-    <p className="mt-4">
-      This page will allow Conveners to generate and publish pre-built monthly reports.
-    </p>
-  </div>
-);
 
 // A simple dashboard home for the committee
 const CommitteeDashboardHome = () => {
@@ -1668,7 +1740,6 @@ export default function CommitteeDashboard() {
               element={<AssignedComplaintsPage />}
             />
             <Route path="analytics" element={<AnalyticsDashboardPage />} />
-            <Route path="reports" element={<ReportsPage />} />
           </Routes>
         </main>
       </div>

@@ -237,11 +237,16 @@ export default function CreateAccountPage() {
   const [accountType, setAccountType] = useState("student");
   const [mode, setMode] = useState("create"); // 'create' | 'delete'
 
-  const DeleteForm = () => {
+  const DeleteForm = ({ accountType }) => {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [showConfirmation, setShowConfirmation] = useState(false);
+
+    const getPlaceholder = () => {
+      return '';
+    };
 
     const handleSubmit = async (e) => {
       e.preventDefault();
@@ -249,55 +254,107 @@ export default function CreateAccountPage() {
       setSuccess("");
 
       if (!email || !email.toLowerCase().endsWith("@dau.ac.in")) {
-        setError("Please provide a valid @dau.ac.in email to delete.");
+        setError(`Please provide a valid ${accountType === 'committee' ? 'committee' : 'student'} email to delete.`);
         return;
       }
 
+      // Show confirmation popup
+      setShowConfirmation(true);
+    };
+
+    const handleConfirmDelete = async () => {
+      setShowConfirmation(false);
       setLoading(true);
       try {
         const token = localStorage.getItem("ccms_token");
         // axios.delete allows a request body via the `data` config
         await axios.delete(`${API_BASE_URL}/auth/delete-user`, {
-          data: { email },
+          data: { email, role: accountType },
           headers: { Authorization: `Bearer ${token}` },
         });
-        setSuccess("Account deleted successfully.");
+        setSuccess(`${accountType.charAt(0).toUpperCase() + accountType.slice(1)} account deleted successfully.`);
         setEmail("");
       } catch (err) {
-        setError(err?.response?.data?.message || "Failed to delete account.");
+        const errorMsg = err?.response?.data?.message || "Failed to delete account.";
+       
+        if (accountType === 'committee' && errorMsg === 'User not found.') {
+          setError("Committee not found");
+        } else {
+          setError(errorMsg);
+        }
       } finally {
         setLoading(false);
       }
     };
 
+    const handleCancelDelete = () => {
+      setShowConfirmation(false);
+    };
+
     return (
-      <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-        <h3 className="text-xl font-semibold text-gray-700">Delete Account</h3>
-        <p className="text-sm text-gray-500">Provide the user's email to delete their account.</p>
+      <>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+          <h3 className="text-xl font-semibold text-gray-700">Delete Account</h3>
+          <p className="text-sm text-gray-500">Provide the {accountType === 'committee' ? 'committee' : 'student'} email to delete the account.</p>
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-          <input
-            type="email"
-            name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+            <input
+              type="email"
+              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={getPlaceholder()}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {success && <p className="text-sm text-green-600">{success}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          {success && <p className="text-sm text-green-600">{success}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
-        >
-          {loading ? "Deleting..." : "Delete Account"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
+          >
+            {loading ? "Deleting..." : `Delete ${accountType === 'committee' ? 'Committee' : 'Student'} Account`}
+          </button>
+        </form>
+
+        {showConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-2xl p-6 max-w-sm w-full">
+              <h2 className="text-lg font-bold text-red-600 mb-4">Confirm Deletion</h2>
+              <p className="text-gray-700 mb-2">
+                Are you sure you want to delete this <strong>{accountType}</strong> account?
+              </p>
+              <p className="text-gray-700 mb-6">
+                <strong>Email:</strong> {email}
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                This action cannot be undone. The account and all associated data will be permanently deleted.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={loading}
+                  className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 font-semibold"
+                >
+                  {loading ? "Deleting..." : "Delete"}
+                </button>
+                <button
+                  onClick={handleCancelDelete}
+                  disabled={loading}
+                  className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     );
   };
 
@@ -305,7 +362,7 @@ export default function CreateAccountPage() {
     // Reusing your main content wrapper style
     <div className="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">
-        Create / Delete Account
+        {mode === 'create' ? 'Create Account' : 'Delete Account'}
       </h1>
 
       <div className="grid grid-cols-2 gap-4 items-end">
@@ -322,17 +379,16 @@ export default function CreateAccountPage() {
           </select>
         </div>
 
-        {/* Account type selector (only used in create mode) */}
+        {/* Account type selector (used in both create and delete modes) */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Select Account Type</label>
           <select
             value={accountType}
             onChange={(e) => setAccountType(e.target.value)}
-            disabled={mode !== 'create'}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-60"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
-            <option value="student">Add New Student</option>
-            <option value="committee">Add New Committee</option>
+            <option value="student">{mode === 'create' ? 'Add New Student' : 'Delete Student'}</option>
+            <option value="committee">{mode === 'create' ? 'Add New Committee' : 'Delete Committee'}</option>
           </select>
         </div>
       </div>
@@ -341,7 +397,7 @@ export default function CreateAccountPage() {
 
       {/* Render based on mode */}
       {mode === 'create' ? (accountType === "student" ? <StudentForm /> : <CommitteeForm />) : (
-        <DeleteForm />
+        <DeleteForm accountType={accountType} />
       )}
     </div>
   );

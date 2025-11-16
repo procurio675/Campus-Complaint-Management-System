@@ -354,7 +354,7 @@ const deleteUser = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { email } = req.body;
+    const { email, role } = req.body;
     if (!email) {
       return res.status(400).json({ message: 'Please provide an email.' });
     }
@@ -365,6 +365,11 @@ const deleteUser = async (req, res) => {
     const target = await User.findOne({ email: normalizedEmail });
     if (!target) {
       return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Validate that the selected role matches the target user's role
+    if (role && target.role !== role) {
+      return res.status(400).json({ message: `This is a ${target.role} account, not a ${role} account.` });
     }
 
     if (target.role === 'admin') {

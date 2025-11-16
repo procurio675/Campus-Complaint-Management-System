@@ -1,7 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Routes, Route, Link, useNavigate, Navigate, useLocation } from "react-router-dom";
-import { FaBell, FaUserCircle, FaChevronDown } from "react-icons/fa";
-import { FiLogOut } from "react-icons/fi";
+import {
+  FaBell,
+  FaHome,
+  FaListAlt,
+  FaChartBar,
+  FaClipboardList,
+  FaUserPlus,
+} from "react-icons/fa";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
 import {
@@ -20,11 +26,59 @@ import {
   Legend,
 } from 'recharts';
 
-import AdminSidebar from "../components/AdminSidebar";
+import DashboardSidebar from "../components/DashboardSidebar";
+import DashboardNavbar from "../components/DashboardNavbar";
 import ProfilePage from "./ProfilePage";
 import CreateAccountPage from "./CreateAccountPage"; // <--- 1. IMPORT ADDED
 import StatusToast from "../components/StatusToast.jsx";
 import ComplaintsTable from "../components/ComplaintsTable";
+import useBackLogoutGuard from "../hooks/useBackLogoutGuard";
+
+const adminSidebarNavItems = [
+  {
+    to: "/admin-dashboard",
+    label: "Home",
+    icon: <FaHome size={18} />,
+  },
+  {
+    to: "/admin-dashboard/all-complaints",
+    label: "All Complaints",
+    icon: <FaListAlt size={18} />,
+  },
+  {
+    to: "/admin-dashboard/general-complaints",
+    label: "General Complaints",
+    icon: <FaClipboardList size={18} />,
+  },
+  {
+    to: "/admin-dashboard/analytics",
+    label: "Analytics",
+    icon: <FaChartBar size={18} />,
+  },
+  {
+    to: "/admin-dashboard/create-account",
+    label: "Create/Delete Account",
+    icon: <FaUserPlus size={18} />,
+  },
+];
+
+const adminNavbarTestIds = {
+  container: "dashboard-header",
+  title: "dashboard-title",
+  headerControls: "header-controls-container",
+  bellButton: "notification-bell-button",
+  bellIcon: "notification-bell-icon",
+  bellBadge: "notification-badge",
+  notificationsWrapper: "notification-dropdown",
+  notificationsTitle: "notification-dropdown-title",
+  markAllReadButton: "mark-all-read-button",
+  profileButton: "user-profile-dropdown-button",
+  profileAvatar: "user-avatar",
+  profileName: "user-name-display",
+  profileMenu: "user-dropdown-menu",
+  profileLink: "dropdown-profile-link",
+  logoutButton: "dropdown-logout-button",
+};
 
 // Admin Dashboard Home with real-time complaints
 const AdminDashboardHome = () => {
@@ -1561,8 +1615,19 @@ const GeneralComplaintsPage = () => (
 
 export default function AdminDashboard() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
+  const notificationButtonRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHomeRoute =
+    location.pathname === "/admin-dashboard" ||
+    location.pathname === "/admin-dashboard/";
+  useBackLogoutGuard(navigate, { enabled: isHomeRoute });
 
   // Read profile from localStorage and derive display values
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('ccms_user') : null;
@@ -1583,10 +1648,150 @@ export default function AdminDashboard() {
     navigate("/login", { replace: true });
   };
 
+  const fetchNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const { data } = await axios.get(`${API_BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
+    } catch (error) {
+      console.error("Admin notifications fetch error", error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      await axios.patch(
+        `${API_BASE_URL}/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification._id === notificationId
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Admin mark as read error", error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      await axios.patch(
+        `${API_BASE_URL}/notifications/mark-all-read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Admin mark all read error", error);
+    }
+  };
+
+  const dismissNotification = async (notificationId, isRead) => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const { data } = await axios.delete(`${API_BASE_URL}/notifications/${notificationId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      setNotifications((prev) => prev.filter((notification) => notification._id !== notificationId));
+      if (!isRead) {
+        if (typeof data?.unreadCount === "number") {
+          setUnreadCount(data.unreadCount);
+        } else {
+          setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
+      }
+    } catch (error) {
+      console.error("Admin delete notification error", error);
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (!notification) return;
+    if (!notification.isRead) {
+      markAsRead(notification._id);
+    }
+    const complaintId = notification?.complaint?._id || notification?.complaint;
+    if (complaintId) {
+      navigate(`/admin-dashboard/all-complaints?complaintId=${complaintId}`);
+    } else {
+      navigate(`/admin-dashboard/all-complaints`);
+    }
+    setNotificationDropdownOpen(false);
+  };
+
+  const handleNotificationDelete = (notification) => {
+    if (!notification) return;
+    dismissNotification(notification._id, notification.isRead);
+  };
+
+  const handleBellClick = () => {
+    setNotificationDropdownOpen((prev) => {
+      const next = !prev;
+      if (!prev) {
+        fetchNotifications();
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
+      }
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setNotificationDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -1595,77 +1800,51 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <AdminSidebar />
+      <DashboardSidebar
+        portalLabel="Admin Portal"
+        logoInitials="CCR"
+        logoRoute="/admin-dashboard"
+        navItems={adminSidebarNavItems}
+      />
 
-      {/* Main Section */}
       <div className="flex-1 flex flex-col pl-64">
-        {/* Header */}
-        <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b">
-          <h1 className="text-lg font-semibold text-gray-800">
-            Campus Complaint Resolve
-          </h1>
+        <DashboardNavbar
+          title="Campus Complaint Resolve"
+          profileName={profileName}
+          profileInitial={profileInitial}
+          onLogout={handleLogout}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          loadingNotifications={loadingNotifications}
+          onBellClick={handleBellClick}
+          onMarkAllRead={markAllAsRead}
+          onNotificationClick={handleNotificationClick}
+          onNotificationDelete={handleNotificationDelete}
+          notificationDropdownOpen={notificationDropdownOpen}
+          notificationDropdownRef={notificationRef}
+          notificationButtonRef={notificationButtonRef}
+          dropdownOpen={dropdownOpen}
+          setDropdownOpen={setDropdownOpen}
+          dropdownRef={dropdownRef}
+          profileRoute="/admin-dashboard/profile"
+          emptyState={(
+            <>
+              <FaBell size={32} className="mx-auto mb-2 text-gray-300" />
+              <p>No notifications yet</p>
+            </>
+          )}
+          testIds={adminNavbarTestIds}
+        />
 
-          <div className="flex items-center gap-6">
-            <button className="text-gray-500 hover:text-gray-800 transition-colors">
-              <FaBell size={22} />
-            </button>
-
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
-                  {profileInitial}
-                </div>
-                <span className="font-semibold text-gray-700 hidden md:block">
-                  {profileName}
-                </span>
-                <FaChevronDown
-                  size={12}
-                  className={`text-gray-500 transition-transform ${
-                    dropdownOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute top-full right-0 mt-3 w-48 bg-white rounded-lg shadow-xl z-10 overflow-hidden border">
-                  <Link
-                    to="/admin-dashboard/profile"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <FaUserCircle />
-                    Profile
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <FiLogOut />
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-8">
           <Routes>
             <Route path="/" element={<AdminDashboardHome />} />
             <Route path="all-complaints" element={<AllComplaintsPage />} />
             <Route path="general-complaints" element={<GeneralComplaintsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="committee-analytics" element={<AdminCommitteeAnalytics />} />
+            <Route path="committee-analytics" element={<AdminCommitteeAnalytics />} />
             <Route path="profile" element={<ProfilePage />} />
-            
-            {/* <--- 2. ROUTE ADDED ---> */}
             <Route path="create-account" element={<CreateAccountPage />} />
-
             <Route path="*" element={<Navigate to="/admin-dashboard" replace />} />
           </Routes>
         </main>

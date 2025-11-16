@@ -1,10 +1,8 @@
 import React from "react";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Routes, Route, Link, useNavigate, NavLink, useLocation } from "react-router-dom";
+import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   FaBell,
-  FaUserCircle,
-  FaChevronDown,
   FaTachometerAlt,
   FaTasks,
   FaChartBar,
@@ -12,12 +10,49 @@ import {
   FaEye,
   FaCheckCircle,
   FaTimesCircle,
-  FaSpinner,
 } from "react-icons/fa";
-import { FiLogOut } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
 import StatusToast from "../components/StatusToast.jsx";
+import useBackLogoutGuard from "../hooks/useBackLogoutGuard";
+import DashboardSidebar from "../components/DashboardSidebar";
+import DashboardNavbar from "../components/DashboardNavbar";
+
+const committeeSidebarNavItems = [
+  {
+    to: "/committee-dashboard",
+    label: "Dashboard",
+    icon: <FaTachometerAlt size={18} />,
+  },
+  {
+    to: "/committee-dashboard/assigned-complaints",
+    label: "Assigned Complaints",
+    icon: <FaTasks size={18} />,
+  },
+  {
+    to: "/committee-dashboard/analytics",
+    label: "Analytics",
+    icon: <FaChartBar size={18} />,
+  },
+];
+
+const committeeNavbarTestIds = {
+  container: "dashboard-header",
+  title: "dashboard-title",
+  headerControls: "header-controls-container",
+  bellButton: "notification-bell-button",
+  bellIcon: "notification-bell-icon",
+  bellBadge: "notification-badge",
+  notificationsWrapper: "notification-dropdown",
+  notificationsTitle: "notification-dropdown-title",
+  markAllReadButton: "mark-all-read-button",
+  profileButton: "user-profile-dropdown-button",
+  profileAvatar: "user-avatar",
+  profileName: "user-name-display",
+  profileMenu: "user-dropdown-menu",
+  profileLink: "dropdown-profile-link",
+  logoutButton: "dropdown-logout-button",
+};
 import {
   BarChart,
   Bar,
@@ -37,80 +72,6 @@ import {
 // Import shared pages (like Profile)
 import ProfilePage from "./ProfilePage";
 import ComplaintsTable from "../components/ComplaintsTable";
-
-// --- 1. Sidebar Component (defined in the same file) ---
-
-// Helper component for the navigation links
-const SidebarLink = ({ to, icon, label }) => {
-  return (
-    <NavLink
-      to={to}
-      end // Use 'end' for the dashboard link to only match the base path
-      className={({ isActive }) =>
-        `flex items-center gap-4 px-4 py-3 rounded-lg font-medium transition-colors ${
-          isActive
-            ? "bg-blue-600 text-white"
-            : "text-gray-600 hover:bg-gray-100"
-        }`
-      }
-    >
-      {icon}
-      <span>{label}</span>
-    </NavLink>
-  );
-};
-
-const Logo = ({ onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="flex items-center gap-3 focus:outline-none group"
-    aria-label="Go to committee dashboard"
-  >
-    <div className="bg-blue-600 h-11 w-11 rounded-full text-white font-black text-lg tracking-tight flex items-center justify-center shadow-md">
-      CCR
-    </div>
-    <span className="text-gray-500 text-sm font-semibold group-hover:text-gray-700 transition-colors">
-      Committee Portal
-    </span>
-  </button>
-);
-
-// Main Sidebar Component
-const CommitteeSidebar = () => {
-  const navigate = useNavigate();
-
-  return (
-    <aside className="fixed top-0 left-0 w-64 h-full bg-white border-r flex flex-col z-10">
-      <div className="h-20 flex items-center px-6 border-b">
-        <Logo onClick={() => navigate("/committee-dashboard")} />
-      </div>
-      <nav className="flex-1 p-4 space-y-2">
-        <SidebarLink
-          to="/committee-dashboard"
-          icon={<FaTachometerAlt size={18} />}
-          label="Dashboard"
-        />
-        {/* C2: View & manage assigned complaints */}
-        <SidebarLink
-          to="/committee-dashboard/assigned-complaints"
-          icon={<FaTasks size={18} />}
-          label="Assigned Complaints"
-        />
-        {/* C4: Department/committee analytics */}
-        <SidebarLink
-          to="/committee-dashboard/analytics"
-          icon={<FaChartBar size={18} />}
-          label="Analytics"
-        />
-      </nav>
-      
-      <div className="p-4 border-t">
-         <p className="text-xs text-gray-500">Logged in as Handler</p>
-      </div>
-    </aside>
-  );
-};
 
 // --- 2. Placeholder Pages for Committee Features ---
 
@@ -1593,13 +1554,19 @@ const CommitteeDashboardHome = () => {
 
 export default function CommitteeDashboard() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const dropdownRef = useRef(null);
   const notificationsRef = useRef(null);
+  const notificationButtonRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHomeRoute =
+    location.pathname === "/committee-dashboard" ||
+    location.pathname === "/committee-dashboard/";
+  useBackLogoutGuard(navigate, { enabled: isHomeRoute });
 
   // Read profile from localStorage and derive display values
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('ccms_user') : null;
@@ -1719,6 +1686,39 @@ export default function CommitteeDashboard() {
     }
   };
 
+  const handleNotificationClick = (notification) => {
+    if (!notification) return;
+    if (!notification.isRead) {
+      markAsRead(notification._id);
+    }
+    setNotificationDropdownOpen(false);
+    try {
+      const cid = notification?.complaint?._id || notification?.complaint;
+      if (cid) {
+        navigate(`/committee-dashboard/assigned-complaints?complaintId=${cid}`);
+        return;
+      }
+    } catch (err) {
+      // ignore navigation errors
+    }
+    navigate("/committee-dashboard/assigned-complaints");
+  };
+
+  const handleNotificationDelete = (notification) => {
+    if (!notification) return;
+    deleteNotification(notification._id);
+  };
+
+  const handleBellClick = () => {
+    setNotificationDropdownOpen((prev) => {
+      const next = !prev;
+      if (!prev) {
+        fetchNotifications();
+      }
+      return next;
+    });
+  };
+
   // Fetch notifications on component mount and set up polling
   useEffect(() => {
     fetchNotifications();
@@ -1743,7 +1743,7 @@ export default function CommitteeDashboard() {
         setDropdownOpen(false);
       }
       if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
-        setNotificationsOpen(false);
+        setNotificationDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -1754,164 +1754,42 @@ export default function CommitteeDashboard() {
 
   return (
     <div className="flex h-screen bg-white">
-      {/* Use the CommitteeSidebar defined above */}
-      <CommitteeSidebar />
+      <DashboardSidebar
+        portalLabel="Committee Portal"
+        logoInitials="CCR"
+        logoRoute="/committee-dashboard"
+        navItems={committeeSidebarNavItems}
+        footerContent={<p className="text-xs text-gray-500">Logged in as Handler</p>}
+      />
       <div className="flex-1 flex flex-col pl-64">
-        
-        <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b">
-          <h1 className="text-lg font-semibold text-gray-800">
-            Campus Complaint Resolve
-          </h1>
-          <div className="flex items-center gap-6">
-            {/* Notifications Bell Icon */}
-            <div className="relative" ref={notificationsRef}>
-              <button
-                onClick={() => {
-                  setNotificationsOpen(!notificationsOpen);
-                  if (!notificationsOpen) {
-                    fetchNotifications();
-                  }
-                }}
-                className="text-gray-500 hover:text-gray-800 transition-colors relative"
-              >
-                <FaBell size={22} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
+        <DashboardNavbar
+          title="Campus Complaint Resolve"
+          profileName={profileName}
+          profileInitial={profileInitial}
+          onLogout={handleLogout}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          loadingNotifications={loadingNotifications}
+          onBellClick={handleBellClick}
+          onMarkAllRead={markAllAsRead}
+          onNotificationClick={handleNotificationClick}
+          onNotificationDelete={handleNotificationDelete}
+          notificationDropdownOpen={notificationDropdownOpen}
+          notificationDropdownRef={notificationsRef}
+          notificationButtonRef={notificationButtonRef}
+          dropdownOpen={dropdownOpen}
+          setDropdownOpen={setDropdownOpen}
+          dropdownRef={dropdownRef}
+          profileRoute="/committee-dashboard/profile"
+          emptyState={(
+            <>
+              <FaBell size={32} className="mx-auto mb-2 text-gray-300" />
+              <p>No notifications yet</p>
+            </>
+          )}
+          testIds={committeeNavbarTestIds}
+        />
 
-              {/* 'Mark all read' is intentionally placed inside the dropdown only */}
-
-              {/* Notifications Dropdown */}
-              {notificationsOpen && (
-                <div className="absolute top-full right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl z-50 overflow-hidden border border-gray-200 max-h-96 flex flex-col">
-                  {/* Header */}
-                  <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 className="text-sm font-semibold text-gray-800">
-                      Notifications
-                    </h3>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllAsRead}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Notifications List */}
-                  <div className="overflow-y-auto flex-1">
-                    {loadingNotifications ? (
-                      <div className="px-4 py-8 text-center text-gray-500">
-                        <FaSpinner className="inline animate-spin mr-2" />
-                        Loading notifications...
-                      </div>
-                    ) : notifications.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-gray-500">
-                        No notifications yet
-                      </div>
-                    ) : (
-                      notifications.map((notif) => (
-                        <div
-                          key={notif._id}
-                          className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
-                            !notif.isRead ? 'bg-blue-50' : ''
-                          }`}
-                          onClick={() => {
-                            if (!notif.isRead) {
-                              markAsRead(notif._id);
-                            }
-                            // Close dropdown and navigate to the complaint details in Assigned Complaints
-                            setNotificationsOpen(false);
-                            try {
-                              const cid = notif?.complaint?._id || notif?.complaint;
-                              if (cid) {
-                                navigate(`/committee-dashboard/assigned-complaints?complaintId=${cid}`);
-                                return;
-                              }
-                            } catch (e) {
-                              // fallback to the assigned list
-                            }
-                            navigate('/committee-dashboard/assigned-complaints');
-                          }}
-                        >
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex-1">
-                              <p className="text-base text-gray-800 font-medium">
-                                {notif.message}
-                              </p>
-                              {notif.complaint && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  ID: {`CC${notif.complaint._id?.slice(-6).toUpperCase()}`}
-                                </p>
-                              )}
-                              <p className="text-xs text-gray-400 mt-1">
-                                {new Date(notif.createdAt).toLocaleDateString()} {new Date(notif.createdAt).toLocaleTimeString()}
-                              </p>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteNotification(notif._id);
-                              }}
-                              className="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-lg">
-                  {profileInitial}
-                </div>
-                <span className="font-semibold text-gray-700 hidden md:block">
-                  {profileName}
-                </span>
-                <FaChevronDown
-                  size={12}
-                  className={`text-gray-500 transition-transform ${
-                    dropdownOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-              {dropdownOpen && (
-                <div className="absolute top-full right-0 mt-3 w-48 bg-white rounded-lg shadow-xl z-10 overflow-hidden border">
-                  <Link
-                    to="/committee-dashboard/profile"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <FaUserCircle />
-                    Profile
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <FiLogOut />
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Main content area with Committee-specific routes */}
         <main className="flex-1 overflow-y-auto p-8">
           <Routes>
             <Route path="/" element={<CommitteeDashboardHome />} />

@@ -1,17 +1,82 @@
 import React from "react";
 import { useState, useRef, useEffect, useMemo  } from "react";
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
-import { FaBell, FaUserCircle, FaChevronDown, FaPlus, FaEye, FaThumbsUp, FaTrash, FaTimes } from "react-icons/fa";
-import { FiLogOut } from "react-icons/fi";
+import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  FaBell,
+  FaPlus,
+  FaEye,
+  FaThumbsUp,
+  FaTrash,
+  FaTimes,
+  FaHome,
+  FaPlusCircle,
+  FaListAlt,
+  FaListUl,
+} from "react-icons/fa";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
 
-import Sidebar from "../components/Sidebar";
+import DashboardSidebar from "../components/DashboardSidebar";
+import DashboardNavbar from "../components/DashboardNavbar";
 import DashboardHome from "./DashboardHome";
 import ProfilePage from "./ProfilePage";
 import ComplaintsTable from "../components/ComplaintsTable";
 
 import AddComplaintPage from "./AddComplaintPage"; 
+import useBackLogoutGuard from "../hooks/useBackLogoutGuard";
+
+const studentSidebarTestIds = {
+  container: "sidebar-container",
+  logoButton: "sidebar-logo-button",
+  logoMark: "sidebar-ccr-logo",
+  portalLabel: "sidebar-portal-label",
+  nav: "sidebar-nav-menu",
+};
+
+const studentSidebarNavItems = [
+  {
+    to: "/student-dashboard",
+    label: "Home",
+    icon: <FaHome size={18} />,
+    testId: "sidebar-home-link",
+  },
+  {
+    to: "/student-dashboard/add-complaint",
+    label: "Add New Complaint",
+    icon: <FaPlusCircle size={18} />,
+    testId: "sidebar-add-complaint-link",
+  },
+  {
+    to: "/student-dashboard/my-complaints",
+    label: "My Complaints",
+    icon: <FaListAlt size={18} />,
+    testId: "sidebar-my-complaints-link",
+  },
+  {
+    to: "/student-dashboard/all-complaints",
+    label: "All Complaints",
+    icon: <FaListUl size={18} />,
+    testId: "sidebar-all-complaints-link",
+  },
+];
+
+const studentNavbarTestIds = {
+  container: "dashboard-header",
+  title: "dashboard-title",
+  headerControls: "header-controls-container",
+  bellButton: "notification-bell-button",
+  bellIcon: "notification-bell-icon",
+  bellBadge: "notification-badge",
+  notificationsWrapper: "notification-dropdown",
+  notificationsTitle: "notification-dropdown-title",
+  markAllReadButton: "mark-all-read-button",
+  profileButton: "user-profile-dropdown-button",
+  profileAvatar: "user-avatar",
+  profileName: "user-name-display",
+  profileMenu: "user-dropdown-menu",
+  profileLink: "dropdown-profile-link",
+  logoutButton: "dropdown-logout-button",
+};
 
 const DeleteConfirmationModal = ({
   isOpen,
@@ -1586,7 +1651,13 @@ export default function StudentDashboard() {
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
+  const notificationButtonRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHomeRoute =
+    location.pathname === "/student-dashboard" ||
+    location.pathname === "/student-dashboard/";
+  useBackLogoutGuard(navigate, { enabled: isHomeRoute });
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -1720,24 +1791,29 @@ export default function StudentDashboard() {
     }
   };
 
-  // Format notification date
-  const formatNotificationDate = (dateString) => {
-    if (!dateString) return "Just now";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+  const handleNotificationClick = (notification) => {
+    if (!notification) return;
+    if (!notification.isRead) {
+      markAsRead(notification._id);
+    }
+    if (notification.complaint) {
+      navigate(`/student-dashboard/complaint/${notification.complaint._id}`);
+    }
+    setNotificationDropdownOpen(false);
+  };
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  const handleNotificationDelete = (notification) => {
+    if (!notification) return;
+    dismissNotification(notification._id, notification.isRead);
+  };
+
+  const handleBellClick = () => {
+    setNotificationDropdownOpen((prev) => {
+      const next = !prev;
+      if (!prev) {
+        fetchNotifications();
+      }
+      return next;
     });
   };
 
@@ -1772,153 +1848,41 @@ export default function StudentDashboard() {
 
   return (
     <div className="flex h-screen bg-white">
-      <Sidebar />
+      <DashboardSidebar
+        portalLabel="Student Portal"
+        logoInitials="CCR"
+        logoRoute="/student-dashboard"
+        navItems={studentSidebarNavItems}
+        testIds={studentSidebarTestIds}
+      />
       <div className="flex-1 flex flex-col pl-64">
-       
-        <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b" data-testid="dashboard-header">
-         
-          <h1 className="text-xl font-semibold text-gray-800" data-testid="dashboard-title">
-            Campus Complaint Resolve
-          </h1>
-          <div className="flex items-center gap-6" data-testid="header-controls-container">
-            <div className="relative" ref={notificationRef}>
-              <button
-                onClick={() => {
-                  setNotificationDropdownOpen(!notificationDropdownOpen);
-                  if (!notificationDropdownOpen) {
-                    fetchNotifications();
-                  }
-                }}
-                className="relative text-gray-500 hover:text-gray-800 transition-colors"
-                data-testid="notification-bell-button"
-              >
-                <FaBell size={22} data-testid="notification-bell-icon" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full" data-testid="notification-badge">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
-              {notificationDropdownOpen && (
-                <div className="absolute top-full right-0 mt-3 w-96 bg-white rounded-lg shadow-xl z-20 overflow-hidden border max-h-96 flex flex-col" data-testid="notification-dropdown">
-                  <div className="p-4 border-b flex items-center justify-between bg-gray-50">
-                    <h3 className="font-semibold text-gray-800" data-testid="notification-dropdown-title">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllAsRead}
-                        className="text-base text-blue-600 hover:text-blue-800 font-medium"
-                        data-testid="mark-all-read-button"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-                  <div className="overflow-y-auto flex-1">
-                    {loadingNotifications ? (
-                      <div className="p-4 text-center text-gray-500">Loading...</div>
-                    ) : notifications.length === 0 ? (
-                      <div className="p-8 text-center text-gray-500">
-                        <FaBell size={32} className="mx-auto mb-2 text-gray-300" />
-                        <p>No notifications yet</p>
-                      </div>
-                    ) : (
-                      notifications.map((notification) => (
-                        <div
-                          key={notification._id}
-                          className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
-                            !notification.isRead ? 'bg-blue-50' : ''
-                          }`}
-                          onClick={() => {
-                            if (!notification.isRead) {
-                              markAsRead(notification._id);
-                            }
-                            if (notification.complaint) {
-                              navigate(`/student-dashboard/complaint/${notification.complaint._id}`);
-                              setNotificationDropdownOpen(false);
-                              return;
-                            }
-                            // fallback: close dropdown and stay
-                            setNotificationDropdownOpen(false);
-                          }}
-                        >
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex-1">
-                              <p className="text-base text-gray-800 font-medium">
-                                {notification.message}
-                              </p>
-                              {notification.complaint && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  ID: {`CC${notification.complaint._id?.slice(-6).toUpperCase()}`}
-                                </p>
-                              )}
-                              <p className="text-xs text-gray-400 mt-1">
-                                {new Date(notification.createdAt).toLocaleDateString()} {new Date(notification.createdAt).toLocaleTimeString()}
-                              </p>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                dismissNotification(notification._id, notification.isRead);
-                              }}
-                              className="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                          {!notification.isRead && (
-                            <div className="mt-2 w-2 h-2 bg-blue-600 rounded-full"></div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                data-testid="user-profile-dropdown-button"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg" data-testid="user-avatar">
-                  {profileInitial}
-                </div>
-                <span className="font-semibold text-gray-700 hidden md:block" data-testid="user-name-display">
-                  {profileName}
-                </span>
-                <FaChevronDown
-                  size={12}
-                  className={`text-gray-500 transition-transform ${
-                    dropdownOpen ? "rotate-180" : ""
-                  }`}
-                  data-testid="dropdown-chevron-icon"
-                />
-              </button>
-              {dropdownOpen && (
-                <div className="absolute top-full right-0 mt-3 w-48 bg-white rounded-lg shadow-xl z-10 overflow-hidden border" data-testid="user-dropdown-menu">
-                  <Link
-                    to="/student-dashboard/profile"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                    data-testid="dropdown-profile-link"
-                  >
-                    <FaUserCircle />
-                    Profile
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    data-testid="dropdown-logout-button"
-                  >
-                    <FiLogOut />
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        <DashboardNavbar
+          title="Campus Complaint Resolve"
+          profileName={profileName}
+          profileInitial={profileInitial}
+          onLogout={handleLogout}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          loadingNotifications={loadingNotifications}
+          onBellClick={handleBellClick}
+          onMarkAllRead={markAllAsRead}
+          onNotificationClick={handleNotificationClick}
+          onNotificationDelete={handleNotificationDelete}
+          notificationDropdownOpen={notificationDropdownOpen}
+          notificationDropdownRef={notificationRef}
+          notificationButtonRef={notificationButtonRef}
+          dropdownOpen={dropdownOpen}
+          setDropdownOpen={setDropdownOpen}
+          dropdownRef={dropdownRef}
+          profileRoute="/student-dashboard/profile"
+          emptyState={(
+            <>
+              <FaBell size={32} className="mx-auto mb-2 text-gray-300" />
+              <p>No notifications yet</p>
+            </>
+          )}
+          testIds={studentNavbarTestIds}
+        />
 
         <main className="flex-1 overflow-y-auto p-8" data-testid="dashboard-main-content">
           <Routes>

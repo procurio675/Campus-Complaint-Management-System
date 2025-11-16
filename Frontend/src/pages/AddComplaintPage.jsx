@@ -56,8 +56,8 @@ export default function AddComplaintPage() {
 
   const onFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
-    const MAX_FILES = 5;
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const MAX_FILES = 3;
+    // const MAX_FILE_SIZE = 10 * 1024 * 1024;
     const ALLOWED_TYPES = [
       "image/jpeg",
       "image/png",
@@ -89,7 +89,7 @@ export default function AddComplaintPage() {
       }
 
       if (allFiles.length >= MAX_FILES) {
-        newError = "You can upload up to 5 files only.";
+        newError = "You can upload up to 3 files only.";
         break;
       }
 
@@ -98,8 +98,8 @@ export default function AddComplaintPage() {
     }
 
     const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0);
-    if (totalSize > 50 * 1024 * 1024) {
-      newError = "Total upload size cannot exceed 50MB.";
+    if (totalSize > 20 * 1024 * 1024) {
+      newError = "Total upload size cannot exceed 20MB.";
     }
 
     setFiles(allFiles);

@@ -275,17 +275,19 @@ export default function DashboardHome() {
             className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
               stat.color
             )} ${getBorderColor(stat.color)}`}
+            data-testid={stat.testId}
           >
             <div className="flex justify-between items-center">
               <span
                 className={`text-sm font-medium ${getLabelColor(stat.color)}`}
+                data-testid={`${stat.testId}-label`}
               >
                 {stat.label}
               </span>
             </div>
             <p
               className="text-3xl font-bold text-gray-800 mt-2"
-              data-testid={stat.testId}
+              data-testid={`${stat.testId}-value`}
             >
               {stat.value}
             </p>
@@ -295,7 +297,7 @@ export default function DashboardHome() {
 
       <div className="bg-white p-6 rounded-xl shadow-lg">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">
+          <h2 className="text-xl font-semibold text-gray-800" data-testid="recent-complaints-title">
             Recent Complaints
           </h2>
           <Link

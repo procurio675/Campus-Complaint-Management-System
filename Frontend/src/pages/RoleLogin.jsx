@@ -93,17 +93,18 @@ const RoleLogin = () => {
       // Role check removed
       // The backend now handles the role check for us.
 
+      // Set localStorage with user data and token
       localStorage.setItem("ccms_token", data.token);
-      localStorage.setItem(
-        "ccms_user",
-        JSON.stringify({
-          _id: data._id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          committeeType: data.committeeType,
-        })
-      );
+      
+      const userData = {
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        committeeType: data.committeeType,
+      };
+      
+      localStorage.setItem("ccms_user", JSON.stringify(userData));
 
       // Route based on the role returned from the backend
       if (userRole === "admin") {

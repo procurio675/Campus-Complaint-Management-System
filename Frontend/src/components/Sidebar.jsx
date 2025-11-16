@@ -15,17 +15,18 @@ const Logo = ({ onClick }) => (
     onClick={onClick}
     className="flex items-center gap-3 mb-8 focus:outline-none group"
     aria-label="Go to student dashboard"
+    data-testid="sidebar-logo-button"
   >
-    <div className="bg-blue-600 h-11 w-11 rounded-full text-white font-black text-lg tracking-tight flex items-center justify-center shadow-md">
+    <div className="bg-blue-600 h-11 w-11 rounded-full text-white font-black text-lg tracking-tight flex items-center justify-center shadow-md" data-testid="sidebar-ccr-logo">
       CCR
     </div>
-    <span className="text-gray-500 text-sm font-semibold group-hover:text-gray-700 transition-colors">
+    <span className="text-gray-500 text-sm font-semibold group-hover:text-gray-700 transition-colors" data-testid="sidebar-portal-label">
       Student Portal
     </span>
   </button>
 );
 
-const NavItem = ({ to, icon, children }) => {
+const NavItem = ({ to, icon, children, ...props }) => {
   const activeClass = "bg-blue-50 text-blue-600";
   const inactiveClass = "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
 
@@ -38,6 +39,7 @@ const NavItem = ({ to, icon, children }) => {
           isActive ? activeClass : inactiveClass
         }`
       }
+      data-testid={props["data-testid"]}
     >
       {icon}
       <span className="font-medium">{children}</span>
@@ -53,22 +55,24 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 h-screen bg-white shadow-xl flex flex-col fixed">
+    <aside className="w-64 h-screen bg-white shadow-xl flex flex-col fixed" data-testid="sidebar-container">
       <div className="p-6">
         <Logo onClick={() => navigate("/student-dashboard")} />
-        <nav className="flex flex-col gap-2">
-          <NavItem to="/student-dashboard" icon={<FaHome size={18} />}>
+        <nav className="flex flex-col gap-2" data-testid="sidebar-nav-menu">
+          <NavItem to="/student-dashboard" icon={<FaHome size={18} />} data-testid="sidebar-home-link">
             Home
           </NavItem>
           <NavItem
             to="/student-dashboard/add-complaint"
             icon={<FaPlusCircle size={18} />}
+            data-testid="sidebar-add-complaint-link"
           >
             Add New Complaint
           </NavItem>
           <NavItem
             to="/student-dashboard/my-complaints"
             icon={<FaListAlt size={18} />}
+            data-testid="sidebar-my-complaints-link"
           >
             My Complaints
           </NavItem>
@@ -76,6 +80,7 @@ export default function Sidebar() {
           <NavItem
             to="/student-dashboard/all-complaints"
             icon={<FaListUl size={18} />}
+            data-testid="sidebar-all-complaints-link"
           >
             All Complaints
           </NavItem>

@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 // Define frontend and backend ports
 const FRONTEND_PORT = 5173; // Vite default
-const BACKEND_PORT = 3001;  // Backend API (Express, etc.)
+const BACKEND_PORT = 3001;  // Your backend API
 
 export default defineConfig({
   testDir: './tests',
@@ -14,7 +14,10 @@ export default defineConfig({
   workers: process.env.CI ? 1 : '50%',
 
   reporter: [
-    ['html', { outputFolder: 'reports/html-report', open: 'never' }],
+    // ---
+    // THE FIX: Changed this path to match your .yml file
+    // ---
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['line']
   ],
 
@@ -32,16 +35,20 @@ export default defineConfig({
     },
   ],
 
-  // Start your frontend + backend automatically
   webServer: [
     {
-      command: `npm run dev --prefix ../backend`,
+      // This is the backend, using 'npm start' is correct
+      command: `npm start --prefix ../backend`,
       url: `http://localhost:${BACKEND_PORT}`,
       timeout: 120 * 1000,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: `npm run dev --prefix ../Frontend -- --port ${FRONTEND_PORT}`,
+      // ---
+      // THE FIX: Use the stable 'preview' server, not 'dev'
+      // This requires the 'Build Frontend' step in the .yml file
+      // ---
+      command: `npm run preview --prefix ../Frontend -- --port ${FRONTEND_PORT}`,
       url: `http://localhost:${FRONTEND_PORT}`,
       timeout: 120 * 1000,
       reuseExistingServer: !process.env.CI,

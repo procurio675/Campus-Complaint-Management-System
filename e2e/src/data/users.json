@@ -1,7 +1,15 @@
 {
-  "student": {
+  "student_main": {
     "email": "202301075@dau.ac.in",
     "password": "tirth123"
+  },
+  "student": {
+    "email": "202301000@dau.ac.in",
+    "password": "test123"
+  },
+  "student_test": {
+    "email": "202301000@dau.ac.in",
+    "password": "test123"
   },
   "admin": {
     "email": "admin@dau.ac.in",

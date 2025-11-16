@@ -62,7 +62,7 @@ test.describe('Login - Validation & Negative Tests @validation @negative', () =>
     });
     
     await test.step('Verify "wrong role" error message', async () => {
-      await expect(loginFormPage.errorMessage(message)).toBeVisible();
+      await expect(loginFormPage.getErrorByText(message)).toBeVisible();
       await expect(page).toHaveURL(URLS.roleLogin);
     });
   });

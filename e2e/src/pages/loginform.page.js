@@ -6,6 +6,7 @@ export class LoginFormPage {
   constructor(page) {
     this.page = page;
 
+    // All locators MUST be Playwright Locator objects
     this.emailInput = page.getByPlaceholder('Enter your email');
     this.passwordInput = page.getByRole('textbox', { name: 'Password' });
     this.loginButton = page.getByRole('button', { name: 'Login' });
@@ -16,11 +17,25 @@ export class LoginFormPage {
     this.adminHeading = page.getByRole('heading', { name: 'Admin Login' });
     this.committeeHeading = page.getByRole('heading', { name: 'Committee Login' });
 
+    // FIX: Make error messages Locators, not dynamic methods
     this.errorIncorrectPassword = page.getByText('Incorrect password');
     this.errorAccountDoesNotExist = page.getByText('Account does not exist');
+    this.errorMessage = page.locator('p.text-red-500, .text-red-500'); // Generic error locator
 
     this.passwordToggleShow = page.getByRole('button', { name: 'Show password' });
     this.passwordToggleHide = page.getByRole('button', { name: 'Hide password' });
+  }
+
+  getEmailInput() {
+    return this.emailInput;
+  }
+
+  getPasswordInput() {
+    return this.passwordInput;
+  }
+
+  getLoginButton() {
+    return this.loginButton;
   }
 
   async verifyOnPage(role) {
@@ -41,6 +56,12 @@ export class LoginFormPage {
     await this.loginButton.click();
   }
 
+  async login(email, password) {
+    await this.getEmailInput().fill(email);
+    await this.getPasswordInput().fill(password);
+    await this.getLoginButton().click();
+  }
+
   async clickBack() {
     await this.backButton.click();
   }
@@ -53,7 +74,8 @@ export class LoginFormPage {
     await this.passwordToggleShow.or(this.passwordToggleHide).click();
   }
 
-  errorMessage(messageText) {
+  // Helper method to get dynamic error text if needed
+  getErrorByText(messageText) {
     return this.page.getByText(messageText, { exact: true });
   }
 }

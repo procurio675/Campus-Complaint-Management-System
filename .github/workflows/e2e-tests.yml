@@ -12,45 +12,49 @@ jobs:
     timeout-minutes: 25
 
     steps:
-      - name: Check out repository
+      - name: 🧩 Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: ⚙️ Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: 📦 Install all dependencies (root, backend, frontend, e2e)
         run: npm install
 
-      - name: Install Playwright browsers
+      # ---
+      # 'Build Backend' step removed - it's not needed for a JS backend
+      # ---
+
+      - name: 🖌️ Build Frontend
+        # This IS needed for 'npm run preview'
+        run: npm run build --prefix Frontend
+
+      - name: 🎭 Install Playwright browsers
         working-directory: e2e
         run: npx playwright install --with-deps
-
-      - name:  Run Playwright E2E Tests
+      
+      - name: 🧪 Run Playwright E2E Tests
         env:
           CI: true
-
-          # --- All your existing secrets ---
           API_BASE_URL: "http://localhost:3001"
           MONGO_URI: '${{ secrets.MONGO_URI }}'
           JWT_SECRET: '${{ secrets.JWT_SECRET }}'
           EMAIL_USER: '${{ secrets.EMAIL_USER }}'
           EMAIL_PASS: '${{ secrets.EMAIL_PASS }}'
           GOOGLE_API_KEY: '${{ secrets.GOOGLE_API_KEY }}'
-
-          # --- ADDED THESE 3 LINES ---
           CLOUDINARY_CLOUD_NAME: '${{ secrets.CLOUDINARY_CLOUD_NAME }}'
           CLOUDINARY_API_KEY: '${{ secrets.CLOUDINARY_API_KEY }}'
           CLOUDINARY_API_SECRET: '${{ secrets.CLOUDINARY_API_SECRET }}'
+        # Playwright will now start the servers using its config
+        run: npx playwright test --config=e2e/playwright.config.js
 
-        run: npx playwright test --config=e2e/playwright.config.js --reporter=html
-
-      - name: Upload Playwright HTML report
+      - name: 📊 Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: e2e/playwright-report/
+          path: e2e/playwright-report/ 
           retention-days: 7

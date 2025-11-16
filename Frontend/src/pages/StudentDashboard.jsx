@@ -1767,12 +1767,12 @@ export default function StudentDashboard() {
       <Sidebar />
       <div className="flex-1 flex flex-col pl-64">
        
-        <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b">
+        <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b" data-testid="dashboard-header">
          
-          <h1 className="text-xl font-semibold text-gray-800">
+          <h1 className="text-xl font-semibold text-gray-800" data-testid="dashboard-title">
             Campus Complaint Resolve
           </h1>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6" data-testid="header-controls-container">
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => {
@@ -1782,23 +1782,24 @@ export default function StudentDashboard() {
                   }
                 }}
                 className="relative text-gray-500 hover:text-gray-800 transition-colors"
-                data-testid="notification-bell"
+                data-testid="notification-bell-button"
               >
-                <FaBell size={22} />
+                <FaBell size={22} data-testid="notification-bell-icon" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" data-testid="notification-badge">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </button>
               {notificationDropdownOpen && (
-                <div className="absolute top-full right-0 mt-3 w-96 bg-white rounded-lg shadow-xl z-20 overflow-hidden border max-h-96 flex flex-col">
+                <div className="absolute top-full right-0 mt-3 w-96 bg-white rounded-lg shadow-xl z-20 overflow-hidden border max-h-96 flex flex-col" data-testid="notification-dropdown">
                   <div className="p-4 border-b flex items-center justify-between bg-gray-50">
-                    <h3 className="font-semibold text-gray-800">Notifications</h3>
+                    <h3 className="font-semibold text-gray-800" data-testid="notification-dropdown-title">Notifications</h3>
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllAsRead}
                         className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        data-testid="mark-all-read-button"
                       >
                         Mark all as read
                       </button>
@@ -1876,11 +1877,12 @@ export default function StudentDashboard() {
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                data-testid="user-profile-dropdown-button"
               >
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg" data-testid="user-avatar">
                   {profileInitial}
                 </div>
-                <span className="font-semibold text-gray-700 hidden md:block">
+                <span className="font-semibold text-gray-700 hidden md:block" data-testid="user-name-display">
                   {profileName}
                 </span>
                 <FaChevronDown
@@ -1888,14 +1890,16 @@ export default function StudentDashboard() {
                   className={`text-gray-500 transition-transform ${
                     dropdownOpen ? "rotate-180" : ""
                   }`}
+                  data-testid="dropdown-chevron-icon"
                 />
               </button>
               {dropdownOpen && (
-                <div className="absolute top-full right-0 mt-3 w-48 bg-white rounded-lg shadow-xl z-10 overflow-hidden border">
+                <div className="absolute top-full right-0 mt-3 w-48 bg-white rounded-lg shadow-xl z-10 overflow-hidden border" data-testid="user-dropdown-menu">
                   <Link
                     to="/student-dashboard/profile"
                     onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    data-testid="dropdown-profile-link"
                   >
                     <FaUserCircle />
                     Profile
@@ -1903,6 +1907,7 @@ export default function StudentDashboard() {
                   <button
                     onClick={handleLogout}
                     className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    data-testid="dropdown-logout-button"
                   >
                     <FiLogOut />
                     Logout
@@ -1913,7 +1918,7 @@ export default function StudentDashboard() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-8" data-testid="dashboard-main-content">
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="profile" element={<ProfilePage />} />

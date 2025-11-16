@@ -11,6 +11,17 @@ export class StudentDashboardPage {
         this.profileMenu = page.locator('header').getByRole('button').nth(1);
         this.logoutButton = page.getByRole('button', { name: /logout/i });
     }
+    async getStats() {
+  return {
+    total: parseInt(await this.getTotalValueText()),
+    resolved: parseInt(await this.getResolvedValueText()),
+    pending: parseInt(await this.getPendingValueText())
+  };
+}
+
+async getTotal() {
+  return parseInt(await this.getTotalValueText());
+}
 
    //clicks profile and then clicks logout
     async doLogout() {

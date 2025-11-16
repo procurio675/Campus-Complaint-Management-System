@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import User from './models/userModel.js';
+import Complaint from './models/Complaint.js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
@@ -30,11 +31,15 @@ const seedDatabase = async () => {
       }
     }
 
-    // 1. Clear existing users
+    // 1. Clear existing complaints so they don't reference old user IDs
+    await Complaint.deleteMany({});
+    console.log('Cleared existing complaints.');
+
+    // 2. Clear existing users
     await User.deleteMany({});
     console.log('Cleared existing users.');
 
-    // 2. Admin + Students + Committee Members
+    // 3. Admin + Students + Committee Members
     const usersToSeed = [
       { name: 'College Admin', email: 'admin@dau.ac.in', password: 'admin123', role: 'admin' },
 

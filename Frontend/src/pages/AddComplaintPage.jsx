@@ -57,7 +57,7 @@ export default function AddComplaintPage() {
   const onFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
     const MAX_FILES = 3;
-    // const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
     const ALLOWED_TYPES = [
       "image/jpeg",
       "image/png",

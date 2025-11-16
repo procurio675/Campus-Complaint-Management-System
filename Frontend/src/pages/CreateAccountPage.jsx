@@ -23,6 +23,14 @@ const StudentForm = () => {
     setError(""); // Clear previous errors
     setSuccess("");
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      setError(
+        "Password is not strong enough. It must be at least 8 characters long and include uppercase, lowercase, a number, and a special character."
+      );
+      return;
+    }
+
     // --- EMAIL VALIDATION CHECK ---
     if (!formData.email.toLowerCase().endsWith("@dau.ac.in")) {
       setError("Email must end with @dau.ac.in");

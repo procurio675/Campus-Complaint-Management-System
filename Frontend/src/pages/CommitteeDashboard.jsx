@@ -679,7 +679,7 @@ const AssignedComplaintsPage = () => {
               <div>
                 <button
                   onClick={() => { setShowViewModal(false); setSelectedComplaint(null); }}
-                  className="text-sm text-gray-500 hover:text-blue-700 transition-colors"
+                  className="text-sm text-red-500 hover:text-red-700 transition-colors bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
                 >
                   Close
                 </button>
@@ -1133,39 +1133,72 @@ const AnalyticsDashboardPage = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-blue-50 border-blue-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="p-4 rounded-lg shadow-lg border-l-8 bg-blue-50 border-blue-500">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-blue-700">Total Complaints</span>
+            <span className="text-xs font-medium text-blue-700">
+              Total Complaints
+            </span>
           </div>
-          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? metrics.total : '—'}</p>
+          <p className="text-xl font-bold text-gray-800 mt-2">
+            {metrics ? metrics.total : '—'}
+          </p>
           {displayMonthlyTotal != null && (
-            <p className="text-sm text-gray-600 mt-1">{displayMonthlyTotal} in current month</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {displayMonthlyTotal} in current month
+            </p>
           )}
         </div>
 
-        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-green-50 border-green-500">
+        <div className="p-4 rounded-lg shadow-lg border-l-8 bg-green-50 border-green-500">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-green-700">Resolved</span>
+            <span className="text-xs font-medium text-green-700">Resolved</span>
           </div>
-          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? metrics.resolved : '—'}</p>
+          <p className="text-xl font-bold text-gray-800 mt-2">
+            {metrics ? metrics.resolved : '—'}
+          </p>
           {displayMonthlyResolved != null && (
-            <p className="text-sm text-gray-600 mt-1">{displayMonthlyResolved} in current month</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {displayMonthlyResolved} in current month
+            </p>
           )}
         </div>
 
-        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-yellow-50 border-yellow-500">
+        <div className="p-4 rounded-lg shadow-lg border-l-8 bg-yellow-50 border-yellow-500">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-yellow-700">Avg. Resolution Time</span>
+            <span className="text-xs font-medium text-yellow-700">
+              Avg. Resolution Time
+            </span>
           </div>
-          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? formatDays(metrics.avgResolutionTimeDays) : '—'}</p>
+          <p className="text-xl font-bold text-gray-800 mt-2">
+            {metrics ? formatDays(metrics.avgResolutionTimeDays) : '—'}
+          </p>
         </div>
 
-        <div className="p-6 rounded-lg shadow-lg border-l-8 bg-purple-50 border-purple-500">
+        <div className="p-4 rounded-lg shadow-lg border-l-8 bg-purple-50 border-purple-500">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-purple-700">Resolution Rate</span>
+            <span className="text-xs font-medium text-purple-700">
+              Resolution Rate
+            </span>
           </div>
-          <p className="text-3xl font-bold text-gray-800 mt-2">{metrics ? formatPct(metrics.resolutionRate) : '—'}</p>
+          <p className="text-xl font-bold text-gray-800 mt-2">
+            {metrics ? formatPct(metrics.resolutionRate) : '—'}
+          </p>
+        </div>
+
+        <div
+          className={`p-4 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
+            "gray"
+          )} ${getBorderColor("gray")}`}
+        >
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-700">
+              Rejected Complaints
+            </span>
+          </div>
+          <p className="text-xl font-bold text-gray-800 mt-2">
+            {stats.rejected}
+          </p>
         </div>
       </div>
 
@@ -1538,26 +1571,40 @@ const CommitteeDashboardHome = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {statsCards.map((stat) => (
           <div
             key={stat.label}
-            className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
+            className={`p-4 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
               stat.color
             )} ${getBorderColor(stat.color)}`}
           >
             <div className="flex justify-between items-center">
               <span
-                className={`text-sm font-medium ${getLabelColor(stat.color)}`}
+                className={`text-xs font-medium ${getLabelColor(stat.color)}`}
               >
                 {stat.label}
               </span>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mt-2">
+            <p className="text-xl font-bold text-gray-800 mt-2">
               {stat.value}
             </p>
           </div>
         ))}
+        <div
+          className={`p-4 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
+            "gray"
+          )} ${getBorderColor("gray")}`}
+        >
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-700">
+              Rejected Complaints
+            </span>
+          </div>
+          <p className="text-xl font-bold text-gray-800 mt-2">
+            {stats.rejected}
+          </p>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-lg">

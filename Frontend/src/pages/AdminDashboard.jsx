@@ -728,7 +728,7 @@ const AllComplaintsPage = () => {
               <div>
                 <button
                   onClick={() => { setShowViewModal(false); setSelectedComplaint(null); }}
-                  className="text-sm text-gray-600 hover:text-gray-800"
+                  className="text-sm text-red-500 hover:text-red-700 transition-colors bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
                 >
                   Close
                 </button>
@@ -1353,12 +1353,22 @@ const AdminCommitteeAnalytics = () => {
             <div style={{ width: '100%', height: 220 }}>
               <ResponsiveContainer>
                 <BarChart data={(analyticsData.subcategoryCounts || []).filter(d => d.count > 0)}>
-                  <XAxis dataKey="category" />
-                  <YAxis />
-                  <Tooltip />
+                  <XAxis
+                    dataKey="category"
+                    tick={{ fontSize: 10 }}   // 👈 smaller font size
+                  />
+                <YAxis />
+                <Tooltip />
                   <Bar dataKey="count">
-                    {(analyticsData.subcategoryCounts || []).filter(d => d.count > 0).map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} onClick={() => handleChartClick('category', entry.category)} fill={"#4F46E5"} cursor="pointer" />
+                    {(analyticsData.subcategoryCounts || [])
+                    .filter(d => d.count > 0)
+                    .map((entry, idx) => (
+                      <Cell
+                        key={`cell-${idx}`}
+                        onClick={() => handleChartClick('category', entry.category)}
+                        fill="#4F46E5"
+                        cursor="pointer"
+                      />
                     ))}
                   </Bar>
                 </BarChart>

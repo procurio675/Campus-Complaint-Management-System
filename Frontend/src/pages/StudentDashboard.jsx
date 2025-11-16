@@ -410,6 +410,12 @@ const MyComplaintsPage = () => {
   const getSortLabel = () => {
     if (!sortConfig) return "Sort By";
     
+    if (sortConfig.key === "upvoteCount" && sortConfig.direction === "ascending") {
+        return "Popularity: Low ↓";
+    }
+    if (sortConfig.key === "upvoteCount" && sortConfig.direction === "descending") {
+        return "Popularity: High ↑";
+    }
     if (sortConfig.key === "priority" && sortConfig.direction === "ascending") {
         return "Priority: Low ↓";
     }
@@ -498,6 +504,8 @@ const MyComplaintsPage = () => {
                     className="px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium cursor-pointer"
                 >
                     <option value="" className="text-gray-500">{getSortLabel()}</option>
+                    <option value="upvoteCount-descending">Popularity: High to Low</option>
+                    <option value="upvoteCount-ascending">Popularity: Low to High</option>
                     <option value="priority-descending">Priority: High to Low</option>
                     <option value="priority-ascending">Priority: Low to High</option>
                     <option value="createdAt-descending">Date: New to Old</option>

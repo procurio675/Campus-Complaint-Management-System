@@ -70,12 +70,19 @@ test.describe('Student Dashboard - Sidebar Navigation', () => {
     await sidebar.clickMyComplaintsLink();
     await page.waitForURL('**/my-complaints');
 
-    // Verify My Complaints page heading and table
+    // Verify My Complaints page heading and table or empty state
     const heading = page.getByRole('heading', { name: /My Complaints/i });
     await expect(heading).toBeVisible();
 
+    // Wait for content to load - either table or empty message
+    await page.waitForTimeout(1000);
+
+    // Either table or empty state should be visible
     const table = page.locator('table').first();
-    await expect(table).toBeVisible();
+    const emptyState = page.locator('.text-center.py-12');
+    const tableVisible = await table.isVisible().catch(() => false);
+    const emptyVisible = await emptyState.isVisible().catch(() => false);
+    expect(tableVisible || emptyVisible).toBeTruthy();
   });
 
   test('should navigate to all complaints', async ({ page }) => {

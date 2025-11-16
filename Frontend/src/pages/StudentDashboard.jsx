@@ -1786,7 +1786,7 @@ export default function StudentDashboard() {
               >
                 <FaBell size={22} data-testid="notification-bell-icon" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" data-testid="notification-badge">
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full" data-testid="notification-badge">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
@@ -1798,7 +1798,7 @@ export default function StudentDashboard() {
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllAsRead}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-base text-blue-600 hover:text-blue-800 font-medium"
                         data-testid="mark-all-read-button"
                       >
                         Mark all as read
@@ -1817,6 +1817,9 @@ export default function StudentDashboard() {
                       notifications.map((notification) => (
                         <div
                           key={notification._id}
+                          className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
+                            !notification.isRead ? 'bg-blue-50' : ''
+                          }`}
                           onClick={() => {
                             if (!notification.isRead) {
                               markAsRead(notification._id);
@@ -1824,35 +1827,24 @@ export default function StudentDashboard() {
                             if (notification.complaint) {
                               navigate(`/student-dashboard/complaint/${notification.complaint._id}`);
                               setNotificationDropdownOpen(false);
+                              return;
                             }
+                            // fallback: close dropdown and stay
+                            setNotificationDropdownOpen(false);
                           }}
-                          className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
-                            !notification.isRead ? "bg-blue-50" : ""
-                          }`}
                         >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
-                                !notification.isRead ? "bg-blue-600" : "bg-transparent"
-                              }`}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`text-sm ${
-                                  !notification.isRead
-                                    ? "font-semibold text-gray-900"
-                                    : "text-gray-700"
-                                }`}
-                              >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex-1">
+                              <p className="text-base text-gray-800 font-medium">
                                 {notification.message}
                               </p>
-                              {notification.data?.description && (
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                  {notification.data.description}
+                              {notification.complaint && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  ID: {`CC${notification.complaint._id?.slice(-6).toUpperCase()}`}
                                 </p>
                               )}
                               <p className="text-xs text-gray-400 mt-1">
-                                {formatNotificationDate(notification.createdAt)}
+                                {new Date(notification.createdAt).toLocaleDateString()} {new Date(notification.createdAt).toLocaleTimeString()}
                               </p>
                             </div>
                             <button
@@ -1860,12 +1852,14 @@ export default function StudentDashboard() {
                                 e.stopPropagation();
                                 dismissNotification(notification._id, notification.isRead);
                               }}
-                              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                              title="Dismiss notification"
+                              className="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0"
                             >
-                              <FaTimes size={12} />
+                              ✕
                             </button>
                           </div>
+                          {!notification.isRead && (
+                            <div className="mt-2 w-2 h-2 bg-blue-600 rounded-full"></div>
+                          )}
                         </div>
                       ))
                     )}

@@ -1782,6 +1782,8 @@ export default function CommitteeDashboard() {
                 )}
               </button>
 
+              {/* 'Mark all read' is intentionally placed inside the dropdown only */}
+
               {/* Notifications Dropdown */}
               {notificationsOpen && (
                 <div className="absolute top-full right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl z-50 overflow-hidden border border-gray-200 max-h-96 flex flex-col">
@@ -1793,7 +1795,7 @@ export default function CommitteeDashboard() {
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllAsRead}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                       >
                         Mark all as read
                       </button>
@@ -1838,7 +1840,7 @@ export default function CommitteeDashboard() {
                         >
                           <div className="flex justify-between items-start gap-2">
                             <div className="flex-1">
-                              <p className="text-sm text-gray-800 font-medium">
+                              <p className="text-base text-gray-800 font-medium">
                                 {notif.message}
                               </p>
                               {notif.complaint && (
@@ -1860,9 +1862,6 @@ export default function CommitteeDashboard() {
                               ✕
                             </button>
                           </div>
-                          {!notif.isRead && (
-                            <div className="mt-2 w-2 h-2 bg-blue-600 rounded-full"></div>
-                          )}
                         </div>
                       ))
                     )}

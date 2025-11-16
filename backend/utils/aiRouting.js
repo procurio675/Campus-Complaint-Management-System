@@ -259,10 +259,10 @@ function detectSpam(title, body) {
 
   const meaningfulRatio = tokens.length ? meaningfulTokens / tokens.length : 0;
   if (tokens.length >= 10) {
-    if (meaningfulTokens < 3 || meaningfulRatio < 0.3) {
+    if (meaningfulTokens < 1 || meaningfulRatio < 0.15) {
       return 'Complaint does not include enough meaningful details. Please describe the problem clearly.';
     }
-  } else if (meaningfulTokens < 4 || meaningfulRatio < 0.5) {
+  } else if (meaningfulTokens < 2 || meaningfulRatio < 0.2) {
     return 'Complaint does not include enough meaningful details. Please describe the problem clearly.';
   }
 

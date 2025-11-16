@@ -151,8 +151,8 @@ export default function AddComplaintPage() {
       errors.push("Title cannot exceed 200 characters.");
 
     // Description Validation (Character-based)
-    if (!cleanDesc || cleanDesc.length < 50)
-      errors.push("Description must be at least 50 characters long.");
+    if (!cleanDesc || cleanDesc.length < 30)
+      errors.push("Description must be at least 30 characters long.");
 
     if (cleanDesc.length > 3000)
       errors.push("Description cannot exceed 3000 characters.");

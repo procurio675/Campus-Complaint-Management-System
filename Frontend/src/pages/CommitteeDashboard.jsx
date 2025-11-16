@@ -18,6 +18,52 @@ import useBackLogoutGuard from "../hooks/useBackLogoutGuard";
 import DashboardSidebar from "../components/DashboardSidebar";
 import DashboardNavbar from "../components/DashboardNavbar";
 
+// Shared UI helpers used by multiple sub-pages
+const getBorderColor = (color) => {
+  switch (color) {
+    case "blue":
+      return "border-blue-500";
+    case "green":
+      return "border-green-500";
+    case "yellow":
+      return "border-yellow-500";
+    case "red":
+      return "border-red-500";
+    default:
+      return "border-gray-500";
+  }
+};
+
+const getBackgroundColor = (color) => {
+  switch (color) {
+    case "blue":
+      return "bg-blue-50";
+    case "green":
+      return "bg-green-50";
+    case "yellow":
+      return "bg-yellow-50";
+    case "red":
+      return "bg-red-50";
+    default:
+      return "bg-gray-50";
+  }
+};
+
+const getLabelColor = (color) => {
+  switch (color) {
+    case "blue":
+      return "text-blue-700";
+    case "green":
+      return "text-green-700";
+    case "yellow":
+      return "text-yellow-700";
+    case "red":
+      return "text-red-700";
+    default:
+      return "text-gray-700";
+  }
+};
+
 const committeeSidebarNavItems = [
   {
     to: "/committee-dashboard",
@@ -1158,7 +1204,7 @@ const AnalyticsDashboardPage = () => {
             </span>
           </div>
           <p className="text-xl font-bold text-gray-800 mt-2">
-            {stats.rejected}
+            {analyticsData?.statusCounts?.rejected || 0}
           </p>
         </div>
       </div>
@@ -1477,51 +1523,7 @@ const CommitteeDashboardHome = () => {
       color: "green",
     },
   ];
-
-  const getBorderColor = (color) => {
-    switch (color) {
-      case "blue":
-        return "border-blue-500";
-      case "green":
-        return "border-green-500";
-      case "yellow":
-        return "border-yellow-500";
-      case "red":
-        return "border-red-500";
-      default:
-        return "border-gray-500";
-    }
-  };
-
-  const getBackgroundColor = (color) => {
-    switch (color) {
-      case "blue":
-        return "bg-blue-50";
-      case "green":
-        return "bg-green-50";
-      case "yellow":
-        return "bg-yellow-50";
-      case "red":
-        return "bg-red-50";
-      default:
-        return "bg-gray-50";
-    }
-  };
-
-  const getLabelColor = (color) => {
-    switch (color) {
-      case "blue":
-        return "text-blue-700";
-      case "green":
-        return "text-green-700";
-      case "yellow":
-        return "text-yellow-700";
-      case "red":
-        return "text-red-700";
-      default:
-        return "text-gray-700";
-    }
-  };
+  
 
   return (
     <div className="flex flex-col gap-8">

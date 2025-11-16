@@ -142,9 +142,22 @@ const AssignedComplaintsPage = () => {
     setToast({ message, type });
   };
 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const targetComplaintIdRef = useRef(null);
+
   useEffect(() => {
+    // capture complaintId query param if present so we can open it after fetch
+    try {
+      const params = new URLSearchParams(location.search);
+      const cid = params.get('complaintId');
+      if (cid) targetComplaintIdRef.current = cid;
+    } catch (e) {
+      targetComplaintIdRef.current = null;
+    }
+
     fetchAssignedComplaints();
-  }, []);
+  }, [location.search]);
 
   const fetchAssignedComplaints = async () => {
     try {
@@ -169,6 +182,21 @@ const AssignedComplaintsPage = () => {
       );
 
       setComplaints(data.complaints || []);
+      // If a complaintId was passed in the URL, open it once complaints are loaded
+      try {
+        const cid = targetComplaintIdRef.current;
+        if (cid) {
+          const found = (data.complaints || []).find((c) => c._id === cid);
+          if (found) {
+            setSelectedComplaint(found);
+            setShowViewModal(true);
+            // clear the param from URL
+            navigate('/committee-dashboard/assigned-complaints', { replace: true });
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
     } catch (err) {
       console.error("Fetch Assigned Complaints Error:", err);
       setError(
@@ -1565,7 +1593,12 @@ const CommitteeDashboardHome = () => {
 
 export default function CommitteeDashboard() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const dropdownRef = useRef(null);
+  const notificationsRef = useRef(null);
   const navigate = useNavigate();
 
   // Read profile from localStorage and derive display values
@@ -1583,6 +1616,119 @@ export default function CommitteeDashboard() {
     : 'C';
   const profileName = currentUser?.committeeType ?? currentUser?.name ?? 'Committee Name';
 
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const { data } = await axios.get(`${API_BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
+    } catch (err) {
+      console.error("Fetch notifications error:", err);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      await axios.patch(
+        `${API_BASE_URL}/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Update local state
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif._id === notificationId ? { ...notif, isRead: true } : notif
+        )
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Mark as read error:", err);
+    }
+  };
+
+  // Mark all as read
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      await axios.patch(
+        `${API_BASE_URL}/notifications/mark-all-read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Update local state
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, isRead: true }))
+      );
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Mark all as read error:", err);
+    }
+  };
+
+  // Delete notification
+  const deleteNotification = async (notificationId) => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      await axios.delete(`${API_BASE_URL}/notifications/${notificationId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      // Update local state
+      const notification = notifications.find((n) => n._id === notificationId);
+      setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
+      if (notification && !notification.isRead) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (err) {
+      console.error("Delete notification error:", err);
+    }
+  };
+
+  // Fetch notifications on component mount and set up polling
+  useEffect(() => {
+    fetchNotifications();
+    
+    // Poll for new notifications every 30 seconds
+    const pollInterval = setInterval(fetchNotifications, 30000);
+    
+    return () => clearInterval(pollInterval);
+  }, []);
+
   const handleLogout = () => {
     // Clear stored auth data like the student dashboard does
     localStorage.removeItem("ccms_token");
@@ -1596,12 +1742,15 @@ export default function CommitteeDashboard() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef]);
+  }, [dropdownRef, notificationsRef]);
 
   return (
     <div className="flex h-screen bg-white">
@@ -1614,9 +1763,114 @@ export default function CommitteeDashboard() {
             Campus Complaint Resolve
           </h1>
           <div className="flex items-center gap-6">
-            <button className="text-gray-500 hover:text-gray-800 transition-colors">
-              <FaBell size={22} />
-            </button>
+            {/* Notifications Bell Icon */}
+            <div className="relative" ref={notificationsRef}>
+              <button
+                onClick={() => {
+                  setNotificationsOpen(!notificationsOpen);
+                  if (!notificationsOpen) {
+                    fetchNotifications();
+                  }
+                }}
+                className="text-gray-500 hover:text-gray-800 transition-colors relative"
+              >
+                <FaBell size={22} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown */}
+              {notificationsOpen && (
+                <div className="absolute top-full right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl z-50 overflow-hidden border border-gray-200 max-h-96 flex flex-col">
+                  {/* Header */}
+                  <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 className="text-sm font-semibold text-gray-800">
+                      Notifications
+                    </h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Notifications List */}
+                  <div className="overflow-y-auto flex-1">
+                    {loadingNotifications ? (
+                      <div className="px-4 py-8 text-center text-gray-500">
+                        <FaSpinner className="inline animate-spin mr-2" />
+                        Loading notifications...
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-gray-500">
+                        No notifications yet
+                      </div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div
+                          key={notif._id}
+                          className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
+                            !notif.isRead ? 'bg-blue-50' : ''
+                          }`}
+                          onClick={() => {
+                            if (!notif.isRead) {
+                              markAsRead(notif._id);
+                            }
+                            // Close dropdown and navigate to the complaint details in Assigned Complaints
+                            setNotificationsOpen(false);
+                            try {
+                              const cid = notif?.complaint?._id || notif?.complaint;
+                              if (cid) {
+                                navigate(`/committee-dashboard/assigned-complaints?complaintId=${cid}`);
+                                return;
+                              }
+                            } catch (e) {
+                              // fallback to the assigned list
+                            }
+                            navigate('/committee-dashboard/assigned-complaints');
+                          }}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-800 font-medium">
+                                {notif.message}
+                              </p>
+                              {notif.complaint && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  ID: {`CC${notif.complaint._id?.slice(-6).toUpperCase()}`}
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-400 mt-1">
+                                {new Date(notif.createdAt).toLocaleDateString()} {new Date(notif.createdAt).toLocaleTimeString()}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notif._id);
+                              }}
+                              className="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          {!notif.isRead && (
+                            <div className="mt-2 w-2 h-2 bg-blue-600 rounded-full"></div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}

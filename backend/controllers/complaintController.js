@@ -1,6 +1,7 @@
 import Complaint from '../models/Complaint.js';
 import Notification from '../models/Notification.js';
 import { classifyComplaint, classifySubcategory } from '../utils/aiRouting.js';
+import User from '../models/userModel.js';
 import { sendStatusUpdateEmail } from '../utils/emailService.js';
 
 const COMMITTEE_CATEGORY_MAP = {
@@ -78,6 +79,32 @@ export const createComplaint = async (req, res) => {
       status: 'pending',
       isAnonymous: isAnonymous === "true",
     });
+
+    // Create notifications for committee members responsible for this category
+    (async () => {
+      try {
+        // Find all committee users and filter by resolved category match
+        const committeeUsers = await User.find({ role: 'committee' }).select('_id committeeType name email');
+        const recipients = committeeUsers.filter((u) => resolveCommitteeCategory(u.committeeType) === complaint.category);
+
+        if (recipients.length > 0) {
+          const notifPromises = recipients.map((r) => {
+            const message = `New complaint assigned to your committee: "${complaint.title}"`;
+            return Notification.create({
+              user: r._id,
+              complaint: complaint._id,
+              type: 'general',
+              message,
+              data: { assignedCategory: complaint.category, complaintId: complaint._id, assignedTo: r._id },
+            });
+          });
+
+          await Promise.all(notifPromises);
+        }
+      } catch (notifyErr) {
+        console.error('Failed to create committee notifications:', notifyErr);
+      }
+    })();
 
     // Return success response with committee information
     res.status(201).json({

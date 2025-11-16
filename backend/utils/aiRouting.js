@@ -43,6 +43,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const CATEGORY_RULES = {
+  'Admin': [
+    // Explicit Admin bucket so code can route directly to Admin when needed
+    'admin', 'general', 'management', 'general complaint', 'administration', 'office'
+  ],
   'Hostel Management': [
     'water', 'electric', 'electricity', 'maintenance', 'repair', 'clean', 'washroom',
     'bathroom', 'sink', 'room', 'leak', 'drain', 'clog', 'clogging', 'warden', 'hostel',
@@ -307,6 +311,25 @@ export async function classifyComplaint(title, body) {
   let committee = mlResult.committee;
   let priority = mlResult.priority;
   let llmResult = null;
+
+  // Immediate rule: any non-cat animal mention -> force Admin routing
+  try {
+    const combined = String(mlResult.cleanText || `${title || ''} ${body || ''}`);
+    if (isAnimalExceptCat(combined)) {
+      console.log('[AI Routing] Non-cat animal detected; forcing Admin routing');
+      return {
+        committee: 'Admin',
+        priority: 'High',
+        sources: {
+          ml: mlResult,
+          llm: null,
+          rule: { committee: 'Admin', confidence: 1, scores: { Admin: 1 }, topScore: 1 },
+        },
+      };
+    }
+  } catch (e) {
+    console.warn('[AI Routing] Animal-detection check failed:', e?.message || e);
+  }
 
   try {
     const scriptPath = path.join(__dirname, '..', 'AI-LLM', 'categorization_and_priority_set.py');
@@ -631,6 +654,28 @@ function getMatchScores(text, rules) {
     }
   }
   return scores;
+}
+
+/**
+ * Detects presence of animal-related terms (excluding cats).
+ * If any of the configured animal words (except cat) appears as a whole word,
+ * treat it as an animal issue that should be escalated to Admin.
+ */
+function isAnimalExceptCat(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  // list of animals to escalate (do not include cat/cats/kittens)
+  const ANIMAL_WORDS = [
+    'monkey', 'monkeys', 'dog', 'dogs', 'stray', 'strays', 'bird', 'birds', 'pigeon', 'pigeons',
+    'rat', 'rats', 'rodent', 'rodents', 'snake', 'snakes', 'cow', 'cows', 'buffalo', 'buffaloes',
+    'goat', 'goats', 'pig', 'pigs', 'deer', 'deers', 'bat', 'bats', 'lizard', 'fox', 'foxes'
+  ];
+
+  for (const animal of ANIMAL_WORDS) {
+    const re = new RegExp("\\b" + animal.replace(/[-\\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", 'i');
+    if (re.test(lower)) return true;
+  }
+  return false;
 }
 
 function fallbackClassification(mlResult, ruleCommittee, rulePriority) {

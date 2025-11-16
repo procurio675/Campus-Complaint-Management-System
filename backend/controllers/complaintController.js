@@ -21,6 +21,10 @@ const COMMITTEE_CATEGORY_MAP = {
   Cultural: 'Cultural',
   Placement: 'Student Placement',
   'Student Placement': 'Student Placement',
+  // Admin / General routing
+  Admin: 'Admin',
+  General: 'Admin',
+  'General Complaints': 'Admin',
 };
 
 export const resolveCommitteeCategory = (committeeType) =>

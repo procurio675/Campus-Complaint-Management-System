@@ -1038,6 +1038,7 @@ const AnalyticsPage = () => {
     'Annual Fest': "Annual Fest Committee",
     Cultural: "Cultural Committee",
     Placement: "Student Placement Cell",
+    Admin: "Administrative / General Complaints",
     // legacy / alternate keys
     "Anti-Ragging": "Internal Complaints Committee",
   };
@@ -1112,6 +1113,7 @@ const AnalyticsPage = () => {
         'Annual Fest',
         'Cultural',
         'Placement',
+        'Admin',
       ];
 
       const group = {};
@@ -1558,7 +1560,7 @@ const generalComplaintsData = [
   {
     id: 4,
     title: "Construction noise near library",
-    description: "There’s loud construction noise near the library during study hours.",
+    description: "Theres loud construction noise near the library during study hours.",
     committee: "General",
     priority: "Low",
     type: "General",
@@ -1579,7 +1581,7 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
-const ComplaintCard = ({ complaint }) => (
+const ComplaintCard = ({ complaint, onTakeAction, onView }) => (
   <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
     <div className="flex justify-between items-start mb-3">
       <h2 className="text-xl font-bold text-gray-800">{complaint.title}</h2>
@@ -1598,30 +1600,208 @@ const ComplaintCard = ({ complaint }) => (
       </span>
     </div>
     <div className="mt-4 pt-4 border-t border-gray-100">
-      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+      <button onClick={() => onTakeAction && onTakeAction(complaint)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
         Take Action
       </button>
-      <button className="ml-3 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-medium">
+      <button onClick={() => onView && onView(complaint)} className="ml-3 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-medium">
         View Details
       </button>
     </div>
   </div>
 );
 
-const GeneralComplaintsPage = () => (
-  <div className="space-y-6">
-    <h1 className="text-2xl font-bold text-gray-800">Other / General Complaints</h1>
-    <p className="text-gray-600">
-      A dedicated queue for general campus issues that fall outside specific committee responsibilities.
-    </p>
+const GeneralComplaintsPage = () => {
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+  const [statusDescription, setStatusDescription] = useState("");
+  const [updating, setUpdating] = useState(false);
 
-    <div className="space-y-5">
-      {generalComplaintsData.map((complaint) => (
-        <ComplaintCard key={complaint.id} complaint={complaint} />
-      ))}
+  useEffect(() => {
+    const fetchAdminComplaints = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const token = localStorage.getItem('ccms_token');
+        if (!token) {
+          setError('Missing auth token. Please login again.');
+          setLoading(false);
+          return;
+        }
+
+        const { data } = await axios.get(`${API_BASE_URL}/complaints/all`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const all = data.complaints || [];
+
+        // Filter complaints routed to Admin / General by the classifier
+        const filtered = all.filter(c => {
+          const cat = (c.category || '').toString().toLowerCase();
+          // include categories that explicitly mention admin or general
+          return cat.includes('admin') || cat === 'general' || cat.includes('general');
+        });
+
+        setComplaints(filtered);
+      } catch (err) {
+        console.error('Fetch admin/general complaints failed', err);
+        setError(err?.response?.data?.message || err.message || 'Failed to fetch complaints');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdminComplaints();
+  }, []);
+
+  if (loading) return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">Other / General Complaints</h1>
+      <div className="flex items-center justify-center py-12 text-gray-500">Loading complaints...</div>
     </div>
-  </div>
-);
+  );
+
+  if (error) return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">Other / General Complaints</h1>
+      <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">{error}</div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-gray-800">Other / General Complaints</h1>
+      <p className="text-gray-600">
+        A dedicated queue for general campus issues that fall under Admin jurisdiction.
+      </p>
+
+      <div className="space-y-5">
+        {complaints.length === 0 ? (
+          <div className="text-gray-500 text-center py-8">No admin-directed complaints found.</div>
+        ) : (
+          complaints.map((c) => (
+            <ComplaintCard
+              key={c._id}
+              complaint={{
+                _id: c._id,
+                title: c.title,
+                description: c.description,
+                category: c.category || 'Admin',
+                type: c.type === 'general' ? 'General' : 'Personal',
+                anonymous: c.isAnonymous ? 'Yes' : 'No',
+                priority: c.priority || 'Medium',
+                status: c.status,
+                userId: c.userId,
+                createdAt: c.createdAt,
+              }}
+              onTakeAction={() => {
+                setSelectedComplaint(c);
+                setNewStatus(c.status || 'pending');
+                setStatusDescription('');
+                setShowStatusModal(true);
+              }}
+              onView={() => {
+                setSelectedComplaint(c);
+                setShowViewModal(true);
+              }}
+            />
+          ))
+        )}
+      </div>
+      {/* View Modal */}
+      {showViewModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-3xl overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Complaint Details</h2>
+                <p className="text-sm text-gray-600 mt-1">ID: {selectedComplaint._id ? `CC${selectedComplaint._id.slice(-6).toUpperCase()}` : 'N/A'}</p>
+              </div>
+              <div>
+                <button onClick={() => { setShowViewModal(false); setSelectedComplaint(null); }} className="text-sm text-gray-600 hover:text-gray-800">Close</button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">Title</h3>
+                <p className="text-gray-800 mb-3">{selectedComplaint.title}</p>
+
+                <h3 className="text-sm font-semibold text-gray-700">Description</h3>
+                <p className="text-gray-700 mb-3 whitespace-pre-line">{selectedComplaint.description}</p>
+
+                <div className="flex flex-wrap gap-3 mt-2">
+                  <div className="text-sm text-gray-600 flex items-center gap-2"><strong>Status:</strong><span className="">{selectedComplaint.status}</span></div>
+                  <div className="text-sm text-gray-600"><strong>Priority:</strong> {selectedComplaint.priority || 'N/A'}</div>
+                  <div className="text-sm text-gray-600"><strong>Committee:</strong> {selectedComplaint.category || 'N/A'}</div>
+                  <div className="text-sm text-gray-600"><strong>Filed By:</strong> {selectedComplaint.userId?.name || 'Anonymous'}</div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">Attachments</h3>
+                <div className="mt-2 space-y-3">
+                  <p className="text-gray-500">No attachments available in this view.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Modal */}
+      {showStatusModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Update Complaint Status</h2>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2"><strong>Complaint:</strong> {selectedComplaint.title}</p>
+              <p className="text-sm text-gray-600"><strong>ID:</strong> {selectedComplaint._id ? `CC${selectedComplaint._id.slice(-6).toUpperCase()}` : ''}</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">New Status</label>
+              <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Description (Required)</label>
+              <textarea value={statusDescription} onChange={(e) => setStatusDescription(e.target.value)} placeholder="e.g., Assigned to maintenance team, expected resolution in 2 hours." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="3" />
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={async () => {
+                if (!newStatus || !statusDescription.trim()) return;
+                try {
+                  setUpdating(true);
+                  const token = localStorage.getItem('ccms_token');
+                  await axios.patch(`${API_BASE_URL}/complaints/${selectedComplaint._id}/status`, { status: newStatus, description: statusDescription.trim() }, { headers: { Authorization: `Bearer ${token}` } });
+                  const { data } = await axios.get(`${API_BASE_URL}/complaints/all`, { headers: { Authorization: `Bearer ${localStorage.getItem('ccms_token')}` } });
+                  setComplaints(data.complaints || []);
+                  setShowStatusModal(false);
+                  setSelectedComplaint(null);
+                } catch (err) {
+                  console.error('Update Status Error:', err);
+                } finally {
+                  setUpdating(false);
+                }
+              }} disabled={updating} className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">{updating ? 'Updating...' : 'Update'}</button>
+              <button onClick={() => { setShowStatusModal(false); setSelectedComplaint(null); setNewStatus(''); setStatusDescription(''); }} disabled={updating} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function AdminDashboard() {
   const [dropdownOpen, setDropdownOpen] = useState(false);

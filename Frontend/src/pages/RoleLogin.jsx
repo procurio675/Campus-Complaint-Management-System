@@ -128,6 +128,7 @@ const RoleLogin = () => {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute inset-y-0 right-0 top-7 flex items-center px-3"
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeIcon /> : <EyeSlashIcon />}
             </button>

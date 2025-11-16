@@ -31,7 +31,7 @@ test.describe('Student Dashboard - My Complaints', () => {
 
     // Verify table or empty state is present
     const table = page.locator('table');
-    const emptyState = page.getByText(/No.*complaints/i);
+    const emptyState = page.getByText(/haven't filed any complaints|No complaints/i);
     
     // Either table exists or empty message is shown
     const tableVisible = await table.isVisible().catch(() => false);
@@ -43,7 +43,7 @@ test.describe('Student Dashboard - My Complaints', () => {
 
   test('should filter complaints by status', async ({ page }) => {
     // Wait for page to load
-    await page.locator('table').or(page.getByText(/No.*complaints/i)).waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('table').or(page.getByText(/haven't filed any complaints|No complaints/i)).waitFor({ state: 'visible', timeout: 10000 });
 
     // Filter by "Resolved" status
     await myComplaintsPage.filterByStatus('Resolved');
@@ -61,7 +61,7 @@ test.describe('Student Dashboard - My Complaints', () => {
 
   test('should filter complaints by priority', async ({ page }) => {
     // Wait for page to load
-    await page.locator('table').or(page.getByText(/No.*complaints/i)).waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('table').or(page.getByText(/haven't filed any complaints|No complaints/i)).waitFor({ state: 'visible', timeout: 10000 });
 
     // Filter by "High" priority
     await myComplaintsPage.filterByPriority('High');
@@ -79,7 +79,7 @@ test.describe('Student Dashboard - My Complaints', () => {
 
     test('should sort complaints by date descending', async ({ page }) => {
     // Wait for page to load
-    await page.locator('table').or(page.getByText(/No.*complaints/i)).waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('table').or(page.getByText(/haven't filed any complaints|No complaints/i)).waitFor({ state: 'visible', timeout: 10000 });
 
     // Click sort button
     await myComplaintsPage.sortByDate();

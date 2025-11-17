@@ -290,7 +290,8 @@ const AdminDashboardHome = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* changed lg:grid-cols-4 -> lg:grid-cols-5 to make room for Rejected card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {statsCards.map((stat) => (
           <div
             key={stat.label}
@@ -310,6 +311,18 @@ const AdminDashboardHome = () => {
             </p>
           </div>
         ))}
+
+        {/* Rejected Complaints card (added to match Committee Dashboard style) */}
+        <div
+          className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
+            "gray"
+          )} ${getBorderColor("gray")}`}
+        >
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-700">Rejected Complaints</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{stats.rejected}</p>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -1014,7 +1027,6 @@ const AllComplaintsPage = () => {
   );
 };
 
-
 const AnalyticsPage = () => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -1499,7 +1511,6 @@ const AdminCommitteeAnalytics = () => {
     </div>
   );
 };
-
 
 const generalComplaintsData = [
   {

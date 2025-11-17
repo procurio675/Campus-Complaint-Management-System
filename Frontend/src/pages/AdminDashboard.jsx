@@ -672,87 +672,85 @@ const AllComplaintsPage = () => {
   return (
     <>
       {toastNode}
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">All Complaints</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Total: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
-          </p>
-        </div>
-
-
-        <div className="flex gap-3 items-center">
-
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search complaints..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 w-48 sm:w-64"
-            />
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">All Complaints</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Total: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
+            </p>
           </div>
 
+          <div className="flex flex-col xs:flex-row gap-2 md:gap-3 md:items-center">
+            <div className="relative w-full xs:w-auto">
+              <input
+                type="text"
+                placeholder="Search complaints..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full xs:w-48 sm:w-64 pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 touch-manipulation"
+              />
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
 
-          <div className="relative">
-            <select
-              value={sortConfig ? `${sortConfig.key}-${sortConfig.direction}` : ""}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value) {
-                  const [key, direction] = value.split('-');
-                  sortComplaints(key, direction);
-                } else {
-                  setSortConfig(null);
-                }
-              }}
-              className="px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
-            >
-              <option value="" className="text-gray-500">{getSortLabel()}</option>
-              <option value="priority-descending">Priority: High to Low</option>
-              <option value="priority-ascending">Priority: Low to High</option>
-              <option value="createdAt-descending">Date: New to Old</option>
-              <option value="createdAt-ascending">Date: Old to New</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+            <div className="flex gap-2 md:gap-3">
+              <div className="relative flex-1 xs:flex-initial">
+                <select
+                  value={sortConfig ? `${sortConfig.key}-${sortConfig.direction}` : ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value) {
+                      const [key, direction] = value.split('-');
+                      sortComplaints(key, direction);
+                    } else {
+                      setSortConfig(null);
+                    }
+                  }}
+                  className="w-full xs:w-auto px-3 xs:px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium touch-manipulation"
+                >
+                  <option value="" className="text-gray-500">{getSortLabel()}</option>
+                  <option value="priority-descending">Priority: High to Low</option>
+                  <option value="priority-ascending">Priority: Low to High</option>
+                  <option value="createdAt-descending">Date: New to Old</option>
+                  <option value="createdAt-ascending">Date: Old to New</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setTempFilters(filters);
+                  setShowFilterModal(true);
+                }}
+                className={`flex items-center space-x-1 px-3 py-2 text-sm rounded-lg shadow-sm font-medium transition-colors border touch-manipulation ${
+                  (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0)
+                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd"></path>
+                </svg>
+                {(filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) && (
+                  <span className={`text-xs font-bold ${ (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) ? 'text-white' : 'text-blue-600'}`}>
+                    ({filters.status.length + filters.committee.length + filters.priority.length})
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={fetchAllComplaints}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 touch-manipulation"
+              >
+                Refresh
+              </button>
             </div>
           </div>
-
-
-          <button
-            onClick={() => {
-              setTempFilters(filters);
-              setShowFilterModal(true);
-            }}
-            className={`flex items-center space-x-1 px-3 py-2 text-sm rounded-lg shadow-sm font-medium transition-colors border ${
-              (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0)
-                ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd"></path>
-            </svg>
-            {(filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) && (
-              <span className={`text-xs font-bold ${ (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) ? 'text-white' : 'text-blue-600'}`}>
-                ({filters.status.length + filters.committee.length + filters.priority.length})
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={fetchAllComplaints}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Refresh
-          </button>
         </div>
-      </div>
 
       <ComplaintsTable
         complaints={sortedAndFilteredComplaints}
@@ -2037,17 +2035,9 @@ export default function AdminDashboard() {
         logoInitials="CCR"
         logoRoute="/admin-dashboard"
         navItems={adminSidebarNavItems}
-        className={`top-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
+        isOpen={isSidebarOpen}
+        onClose={closeSidebar}
       />
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] lg:hidden"
-          onClick={closeSidebar}
-          aria-hidden="true"
-        />
-      )}
 
       <div className="flex-1 flex flex-col w-full lg:pl-64">
         <DashboardNavbar
@@ -2071,8 +2061,9 @@ export default function AdminDashboard() {
           profileRoute="/admin-dashboard/profile"
           emptyState={(
             <>
-              <FaBell size={32} className="mx-auto mb-2 text-gray-300" />
-              <p>No notifications yet</p>
+              <FaBell size={28} className="sm:hidden mx-auto mb-2 text-gray-300" />
+              <FaBell size={32} className="hidden sm:block mx-auto mb-2 text-gray-300" />
+              <p className="text-sm sm:text-base">No notifications yet</p>
             </>
           )}
           showMenuButton
@@ -2082,7 +2073,7 @@ export default function AdminDashboard() {
           testIds={adminNavbarTestIds}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
           <Routes>
             <Route path="/" element={<AdminDashboardHome />} />
             <Route path="all-complaints" element={<AllComplaintsPage />} />

@@ -4,12 +4,39 @@
 
 html, body, #root { height: 100%; }
 body { background-color: #F9FAFB; }
+
 /* Remove unwanted scrollbars and default spacing */
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden;
+  /* allow vertical scrolling for pages while preventing unwanted horizontal scroll */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Mobile-specific utilities */
+@layer utilities {
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Complaint submission feedback animations */
@@ -88,3 +115,4 @@ html, body {
     opacity: 1;
   }
 }
+

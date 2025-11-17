@@ -77,7 +77,7 @@ const RoleLogin = () => {
 
   return (
     <div
-      className="relative flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat px-4 overflow-hidden"
+      className="relative flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat px-3 sm:px-4 overflow-hidden"
       style={{ backgroundImage: `url(${campusBg})` }}
     >
       {/* transparent background overlay */}
@@ -86,24 +86,24 @@ const RoleLogin = () => {
       {/* Back Button */}
       <button
         onClick={() => navigate("/login")}
-        className="absolute top-6 left-6 flex items-center gap-2 text-blue-700 font-medium hover:underline z-10"
+        className="absolute top-4 sm:top-6 left-4 sm:left-6 flex items-center gap-2 text-blue-700 text-sm sm:text-base font-medium hover:underline z-10 touch-manipulation"
       >
         ← Back
       </button>
 
-      <div className="relative bg-white/90 backdrop-blur-sm p-10 rounded-2xl shadow-2xl w-full max-w-md z-10">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-8">
+      <div className="relative bg-white/90 backdrop-blur-sm p-6 sm:p-8 md:p-10 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-[95%] xs:max-w-md z-10">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center text-blue-700 mb-6 sm:mb-8">
           {role.charAt(0).toUpperCase() + role.slice(1)} Login
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
-            <label className="block text-gray-700 font-semibold mb-2">
+            <label className="block text-gray-700 text-sm sm:text-base font-semibold mb-2">
               Email Address
             </label>
             <input
               type="email"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
               placeholder="Enter your email"
               value={email}
               onChange={(e) => { setEmail(e.target.value); setError(""); }}
@@ -112,12 +112,12 @@ const RoleLogin = () => {
           </div>
 
           <div className="relative">
-            <label className="block text-gray-700 font-semibold mb-2">
+            <label className="block text-gray-700 text-sm sm:text-base font-semibold mb-2">
               Password
             </label>
             <input
               type={showPassword ? "text" : "password"}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none pr-10"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none pr-10 text-sm sm:text-base"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
@@ -126,19 +126,19 @@ const RoleLogin = () => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 top-7 flex items-center px-3"
+              className="absolute inset-y-0 right-0 top-7 sm:top-8 flex items-center px-3 touch-manipulation"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeIcon /> : <EyeSlashIcon />}
             </button>
           </div>
 
-          {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-center text-xs sm:text-sm">{error}</p>}
 
           <button
             type="submit"
-            className={`w-full bg-blue-600 text-white font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2 ${
-              isLoading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"
+            className={`w-full bg-blue-600 text-white font-semibold py-2 sm:py-2.5 rounded-lg transition flex items-center justify-center gap-2 text-sm sm:text-base touch-manipulation ${
+              isLoading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700 active:bg-blue-800"
             }`}
             disabled={isLoading}
           >
@@ -157,7 +157,7 @@ const RoleLogin = () => {
             <button
               type="button"
               onClick={() => navigate("/forgot-password")}
-              className="text-blue-600 hover:underline text-sm font-medium"
+              className="text-blue-600 hover:underline text-xs sm:text-sm font-medium touch-manipulation"
             >
               Forgot password?
             </button>

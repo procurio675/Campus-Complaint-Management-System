@@ -230,84 +230,189 @@ const ComplaintsTable = ({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left">
-        <thead>
-          <tr className="bg-gray-50 border-b">
-            {showId && (
-              <th className="p-3 text-sm font-semibold text-gray-600">
-                {showPriority ? "ID" : "Complaint ID"}
-              </th>
-            )}
-            {showTitle && (
-              <th className="p-3 text-sm font-semibold text-gray-600">Title</th>
-            )}
-            {showCommittee && (
-              <th className="p-3 text-sm font-semibold text-gray-600">Committee</th>
-            )}
-            {showPriority && (
-              <th className="p-3 text-sm font-semibold text-gray-600">Priority</th>
-            )}
-            {showStatus && (
-              <th className={`p-3 text-sm font-semibold text-gray-600 ${showPriority ? "w-36" : ""}`}>
-                Status
-              </th>
-            )}
-            {showUpvotes && (
-              <th className="p-3 text-sm font-semibold text-gray-600">Upvotes</th>
-            )}
-            {showFiledBy && (
-              <th className="p-3 text-sm font-semibold text-gray-600">Filed By</th>
-            )}
-            {showDate && (
-              <th className="p-3 text-sm font-semibold text-gray-600">Date</th>
-            )}
-            {showActions && (
-              <th className="p-3 text-sm font-semibold text-gray-600">Actions</th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {complaints.map((complaint) => (
-            <tr
-              key={complaint?._id || Math.random()}
-              className="border-b hover:bg-gray-50 transition-colors"
-            >
+    <>
+      {/* Desktop Table View - Hidden on mobile */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-gray-50 border-b">
               {showId && (
-                <td className="p-3 text-gray-700 font-mono text-sm">
-                  {getComplaintId(complaint?._id)}
-                </td>
+                <th className="p-3 text-sm font-semibold text-gray-600">
+                  {showPriority ? "ID" : "Complaint ID"}
+                </th>
               )}
               {showTitle && (
-                <td className="p-3 text-gray-700 max-w-xs truncate">
-                  {complaint?.title}
-                </td>
+                <th className="p-3 text-sm font-semibold text-gray-600">Title</th>
               )}
               {showCommittee && (
-                <td className="p-3 text-gray-700">{complaint?.category}</td>
+                <th className="p-3 text-sm font-semibold text-gray-600">Committee</th>
               )}
               {showPriority && (
-                <td className="p-3">{getPriorityBadge(complaint?.priority)}</td>
+                <th className="p-3 text-sm font-semibold text-gray-600">Priority</th>
               )}
               {showStatus && (
-                <td className={`p-3 ${showPriority ? "whitespace-nowrap" : ""}`}>
-                  {getStatusBadge(complaint?.status)}
-                </td>
+                <th className={`p-3 text-sm font-semibold text-gray-600 ${showPriority ? "w-36" : ""}`}>
+                  Status
+                </th>
               )}
               {showUpvotes && (
-                <td className="p-3 text-gray-600 text-sm text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <span>
+                <th className="p-3 text-sm font-semibold text-gray-600">Upvotes</th>
+              )}
+              {showFiledBy && (
+                <th className="p-3 text-sm font-semibold text-gray-600">Filed By</th>
+              )}
+              {showDate && (
+                <th className="p-3 text-sm font-semibold text-gray-600">Date</th>
+              )}
+              {showActions && (
+                <th className="p-3 text-sm font-semibold text-gray-600">Actions</th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {complaints.map((complaint) => (
+              <tr
+                key={complaint?._id || Math.random()}
+                className="border-b hover:bg-gray-50 transition-colors"
+              >
+                {showId && (
+                  <td className="p-3 text-gray-700 font-mono text-sm">
+                    {getComplaintId(complaint?._id)}
+                  </td>
+                )}
+                {showTitle && (
+                  <td className="p-3 text-gray-700 max-w-xs truncate">
+                    {complaint?.title}
+                  </td>
+                )}
+                {showCommittee && (
+                  <td className="p-3 text-gray-700">{complaint?.category}</td>
+                )}
+                {showPriority && (
+                  <td className="p-3">{getPriorityBadge(complaint?.priority)}</td>
+                )}
+                {showStatus && (
+                  <td className={`p-3 ${showPriority ? "whitespace-nowrap" : ""}`}>
+                    {getStatusBadge(complaint?.status)}
+                  </td>
+                )}
+                {showUpvotes && (
+                  <td className="p-3 text-gray-600 text-sm text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span>
+                        {complaint?.upvoteCount || complaint?.upvotes?.length || 0}
+                      </span>
+                      {onUpvote && (
+                        <button
+                          onClick={() => complaint && onUpvote(complaint._id)}
+                          disabled={upvoting[complaint?._id]}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-colors touch-manipulation ${
+                            complaint?.hasUpvoted
+                              ? "bg-blue-600 text-white hover:bg-blue-700"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          } ${upvoting[complaint?._id] ? "opacity-50 cursor-not-allowed" : ""}`}
+                          title={
+                            complaint?.hasUpvoted
+                              ? "Remove upvote"
+                              : "Upvote this complaint"
+                          }
+                        >
+                          <FaThumbsUp size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                )}
+                {showFiledBy && (
+                  <td className="p-3 text-gray-600 text-sm">
+                    {getUserName(complaint?.userId)}
+                  </td>
+                )}
+                {showDate && (
+                  <td className="p-3 text-gray-600 text-sm">
+                    {formatDate(complaint?.createdAt)}
+                  </td>
+                )}
+                {showActions && <td className="p-3">{renderActions(complaint)}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card View - Shown only on mobile */}
+      <div className="md:hidden space-y-3">
+        {complaints.map((complaint) => (
+          <div
+            key={complaint?._id || Math.random()}
+            className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+          >
+            {/* Header with ID and Status */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                {showId && (
+                  <div className="font-mono text-xs text-blue-600 font-semibold mb-1">
+                    {getComplaintId(complaint?._id)}
+                  </div>
+                )}
+                {showTitle && (
+                  <h3 className="text-sm font-semibold text-gray-800 line-clamp-2">
+                    {complaint?.title}
+                  </h3>
+                )}
+              </div>
+              {showStatus && (
+                <div className="ml-2 flex-shrink-0">
+                  {getStatusBadge(complaint?.status)}
+                </div>
+              )}
+            </div>
+
+            {/* Details Grid */}
+            <div className="space-y-2 text-xs">
+              {showCommittee && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-medium w-20">Committee:</span>
+                  <span className="text-gray-700">{complaint?.category}</span>
+                </div>
+              )}
+              
+              {showPriority && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-medium w-20">Priority:</span>
+                  {getPriorityBadge(complaint?.priority)}
+                </div>
+              )}
+
+              {showFiledBy && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-medium w-20">Filed By:</span>
+                  <span className="text-gray-700">{getUserName(complaint?.userId)}</span>
+                </div>
+              )}
+
+              {showDate && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-medium w-20">Date:</span>
+                  <span className="text-gray-700">{formatDate(complaint?.createdAt)}</span>
+                </div>
+              )}
+
+              {showUpvotes && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-medium w-20">Upvotes:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-700 font-semibold">
                       {complaint?.upvoteCount || complaint?.upvotes?.length || 0}
                     </span>
                     {onUpvote && (
                       <button
                         onClick={() => complaint && onUpvote(complaint._id)}
                         disabled={upvoting[complaint?._id]}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-colors ${
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-colors text-xs touch-manipulation ${
                           complaint?.hasUpvoted
-                            ? "bg-blue-600 text-white hover:bg-blue-700"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            ? "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                         } ${upvoting[complaint?._id] ? "opacity-50 cursor-not-allowed" : ""}`}
                         title={
                           complaint?.hasUpvoted
@@ -315,28 +420,25 @@ const ComplaintsTable = ({
                             : "Upvote this complaint"
                         }
                       >
-                        <FaThumbsUp size={14} />
+                        <FaThumbsUp size={12} />
+                        {complaint?.hasUpvoted ? "Upvoted" : "Upvote"}
                       </button>
                     )}
                   </div>
-                </td>
+                </div>
               )}
-              {showFiledBy && (
-                <td className="p-3 text-gray-600 text-sm">
-                  {getUserName(complaint?.userId)}
-                </td>
-              )}
-              {showDate && (
-                <td className="p-3 text-gray-600 text-sm">
-                  {formatDate(complaint?.createdAt)}
-                </td>
-              )}
-              {showActions && <td className="p-3">{renderActions(complaint)}</td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+            </div>
+
+            {/* Actions */}
+            {showActions && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                {renderActions(complaint)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
   );
 };
 

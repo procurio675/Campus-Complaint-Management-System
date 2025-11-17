@@ -11,12 +11,12 @@ import {
 
 const InfoItem = ({ icon, label, value, testId }) => (
   <div className="flex flex-col">
-    <label className="flex items-center gap-2 text-xs font-medium text-gray-500">
-      {React.cloneElement(icon, { className: "text-gray-400", size: 14 })}
+    <label className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs font-medium text-gray-500">
+      {React.cloneElement(icon, { className: "text-gray-400", size: 12 })}
       {label}
     </label>
     <div
-      className="mt-1 text-base font-semibold text-gray-800 ml-6"
+      className="mt-1 text-sm sm:text-base font-semibold text-gray-800 ml-4 sm:ml-6"
       data-testid={testId}
     >
       {value}
@@ -154,24 +154,24 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-gray-800">Your Profile</h1>
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Your Profile</h1>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-2xl">
+      <div className="bg-white p-4 sm:p-6 rounded-lg sm:rounded-xl shadow-lg">
+        <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xl sm:text-2xl">
             {avatarLetter}
           </div>
           <div>
             <h2
-              className="text-xl font-bold text-gray-800"
+              className="text-lg sm:text-xl font-bold text-gray-800"
               data-testid="profile-name"
             >
               {displayName}
             </h2>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <InfoItem
             icon={<FaEnvelope />}
             label="Email Address"
@@ -225,24 +225,24 @@ export default function ProfilePage() {
 
       <form
         onSubmit={handlePasswordSubmit}
-        className="bg-white p-6 rounded-xl shadow-lg"
+        className="bg-white p-4 sm:p-6 rounded-lg sm:rounded-xl shadow-lg"
       >
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6">
           Change Password
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           
           <div>
             <label
               htmlFor="current"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-xs sm:text-sm font-medium text-gray-700"
             >
               Current Password
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-gray-400" size={14} />
+              <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+                <FaLock className="text-gray-400" size={12} />
               </div>
               <input
                 type="password"
@@ -251,7 +251,7 @@ export default function ProfilePage() {
                 value={passwords.current}
                 onChange={handlePasswordChange}
                 required
-                className="w-full pl-9 pr-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-7 sm:pl-9 pr-3 sm:pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -259,13 +259,13 @@ export default function ProfilePage() {
           <div>
             <label
               htmlFor="new"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-xs sm:text-sm font-medium text-gray-700"
             >
               New Password
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-gray-400" size={14} />
+              <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+                <FaLock className="text-gray-400" size={12} />
               </div>
               <input
                 type="password"
@@ -274,7 +274,7 @@ export default function ProfilePage() {
                 value={passwords.new}
                 onChange={handlePasswordChange}
                 required
-                className="w-full pl-9 pr-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-7 sm:pl-9 pr-3 sm:pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -282,13 +282,13 @@ export default function ProfilePage() {
           <div>
             <label
               htmlFor="confirm"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-xs sm:text-sm font-medium text-gray-700"
             >
               Confirm New Password
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-gray-400" size={14} />
+              <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+                <FaLock className="text-gray-400" size={12} />
               </div>
               <input
                 type="password"
@@ -297,7 +297,7 @@ export default function ProfilePage() {
                 value={passwords.confirm}
                 onChange={handlePasswordChange}
                 required
-                className="w-full pl-9 pr-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-7 sm:pl-9 pr-3 sm:pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -305,7 +305,7 @@ export default function ProfilePage() {
 
         {passwordMessage.text && (
           <div
-            className={`mt-4 text-sm font-medium ${
+            className={`mt-3 sm:mt-4 text-xs sm:text-sm font-medium ${
               passwordMessage.type === "error"
                 ? "text-red-600"
                 : "text-green-600"
@@ -315,11 +315,11 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div className="mt-6 text-right">
+        <div className="mt-4 sm:mt-6 text-right">
           <button
             type="submit"
             disabled={loading}
-            className={`bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition-all ${
+            className={`bg-blue-600 text-white font-medium py-2 px-4 sm:px-6 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-all text-sm sm:text-base w-full xs:w-auto touch-manipulation ${
               loading ? "opacity-70 cursor-not-allowed" : ""
             }`}
           >

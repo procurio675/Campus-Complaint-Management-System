@@ -446,13 +446,13 @@ export default function AddComplaintPage() {
   return (
     <>
       {submitting && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white/95 border border-blue-100 rounded-2xl shadow-2xl p-6 max-w-sm w-[90%] text-center">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+          <div className="bg-white/95 border border-blue-100 rounded-xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 max-w-sm w-full text-center">
             <div className="submission-spinner mx-auto mb-4" aria-hidden="true" />
-            <p className="text-lg font-semibold text-gray-800">
+            <p className="text-base sm:text-lg font-semibold text-gray-800">
               Submitting your complaint
             </p>
-            <p className="text-sm text-gray-500 mt-2" aria-live="assertive">
+            <p className="text-xs sm:text-sm text-gray-500 mt-2" aria-live="assertive">
               We are encrypting your attachments and routing the complaint. This may take a few seconds.
             </p>
           </div>
@@ -460,50 +460,50 @@ export default function AddComplaintPage() {
       )}
 
       {successDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-3 sm:px-4">
           <div
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={closeSuccessModal}
           />
-          <div className="relative bg-white rounded-[32px] px-8 py-10 mx-4 w-full max-w-lg border border-blue-100 shadow-[0_28px_60px_rgba(15,23,42,0.18)] text-center">
-            <div className="success-tick mx-auto mb-6" aria-hidden="true" />
-            <p className="text-xs font-semibold tracking-[0.35em] text-sky-500 uppercase">
+          <div className="relative bg-white rounded-2xl sm:rounded-[32px] px-5 py-8 sm:px-8 sm:py-10 w-full max-w-[95%] xs:max-w-lg border border-blue-100 shadow-[0_28px_60px_rgba(15,23,42,0.18)] text-center">
+            <div className="success-tick mx-auto mb-4 sm:mb-6" aria-hidden="true" />
+            <p className="text-[10px] xs:text-xs font-semibold tracking-[0.25em] xs:tracking-[0.35em] text-sky-500 uppercase">
               Success
             </p>
-            <h2 className="text-2xl font-bold text-gray-900 mt-2">
+            <h2 className="text-xl xs:text-2xl font-bold text-gray-900 mt-2">
               Complaint Submitted
             </h2>
-            <p className="text-sm text-gray-500 mt-3">
+            <p className="text-xs xs:text-sm text-gray-500 mt-2 xs:mt-3">
               We will notify you as progress is made. Keep an eye on your dashboard for updates.
             </p>
 
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mt-8 text-left">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <div className="bg-slate-50 border border-slate-100 rounded-xl sm:rounded-2xl p-4 sm:p-5 mt-6 sm:mt-8 text-left">
+              <p className="text-[10px] xs:text-xs text-gray-500 uppercase tracking-wide">
                 Complaint ID
               </p>
-              <p className="text-xl font-semibold text-gray-900">
+              <p className="text-lg xs:text-xl font-semibold text-gray-900">
                 {successDetails.complaintId}
               </p>
-              <div className="mt-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
+              <div className="mt-3 sm:mt-4">
+                <p className="text-[10px] xs:text-xs text-gray-500 uppercase tracking-wide">
                   Routed to
                 </p>
-                <p className="text-base font-medium text-gray-800">
+                <p className="text-sm xs:text-base font-medium text-gray-800">
                   {successDetails.committee}
                 </p>
               </div>
             </div>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 sm:mt-9 flex flex-col gap-2 sm:gap-3 xs:flex-row">
               <button
                 onClick={handleViewComplaints}
-                className="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all"
+                className="flex-1 bg-blue-600 text-white font-semibold py-2.5 sm:py-3 px-4 rounded-lg sm:rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 active:bg-blue-800 transition-all text-sm sm:text-base touch-manipulation"
               >
                 View My Complaints
               </button>
               <button
                 onClick={handleFileAnother}
-                className="flex-1 border border-blue-100 text-blue-700 font-semibold py-3 px-4 rounded-xl hover:bg-blue-50 transition-all"
+                className="flex-1 border border-blue-100 text-blue-700 font-semibold py-2.5 sm:py-3 px-4 rounded-lg sm:rounded-xl hover:bg-blue-50 active:bg-blue-100 transition-all text-sm sm:text-base touch-manipulation"
               >
                 File Another
               </button>
@@ -512,20 +512,20 @@ export default function AddComplaintPage() {
         </div>
       )}
 
-      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+      <div className="bg-white p-4 sm:p-6 md:p-8 rounded-lg sm:rounded-xl shadow-lg border border-gray-100">
       
-        <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
           File a New Complaint
         </h1>
         <br />
-        <p className="text-gray-600 mb-8">
+        <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
           Please provide accurate and detailed information. The system will
           automatically route your complaint to the relevant committee.
         </p>
-        <form onSubmit={submit} className="space-y-6">
+        <form onSubmit={submit} className="space-y-4 sm:space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">
               Complaint Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -544,7 +544,7 @@ export default function AddComplaintPage() {
                 errors.includes("Title cannot exceed 200 characters.")
                   ? "border-red-500"
                   : "border-gray-300"
-              } rounded-lg px-3 py-2 `}
+              } rounded-lg px-3 py-2 text-sm sm:text-base`}
               required
             />
             <div className="flex justify-between mt-1">
@@ -563,7 +563,7 @@ export default function AddComplaintPage() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">
               Detailed Description <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -582,7 +582,7 @@ export default function AddComplaintPage() {
                 errors.some((err) => err.toLowerCase().includes("description"))
                   ? "border-red-500"
                   : "border-gray-300"
-              } rounded-lg px-3 py-2 `}
+              } rounded-lg px-3 py-2 text-sm sm:text-base`}
               required
             />
             <div className="flex justify-between mt-1">
@@ -601,7 +601,7 @@ export default function AddComplaintPage() {
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">
               Location (optional)
             </label>
             <input
@@ -609,14 +609,14 @@ export default function AddComplaintPage() {
               value={form.location}
               onChange={handleChange}
               placeholder="e.g., Hostel A Room 214 / C-Block 2nd Floor"
-              className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 "
+              className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm sm:text-base"
             />
           </div>
 
           {/* File Upload */}
           <div>
             <div className="flex justify-between items-center">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700">
                 Attachments (optional)
               </label>
               {files.length > 0 && (
@@ -630,7 +630,7 @@ export default function AddComplaintPage() {
               )}
             </div>
 
-            <label className="inline-block mt-2 cursor-pointer text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 px-4 rounded-lg transition-all">
+            <label className="inline-block mt-2 cursor-pointer text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 py-2 px-3 sm:px-4 rounded-lg transition-all touch-manipulation">
               Choose Files
               <input
                 ref={fileInputRef}
@@ -650,9 +650,9 @@ export default function AddComplaintPage() {
               )}
 
             {preview.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-3 justify-items-start">
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-3 justify-items-start">
                 {preview.map((src, i) => (
-                  <div key={i} className="relative group w-full max-w-[200px]">
+                  <div key={i} className="relative group w-full">
                     {files[i].type.includes("image") ? (
                       <a
                         href={src}
@@ -663,7 +663,7 @@ export default function AddComplaintPage() {
                         <img
                           src={src}
                           alt={`Preview of ${files[i].name}`}
-                          className="h-12 w-full object-cover rounded-lg shadow-sm border hover:opacity-90 transition"
+                          className="h-16 xs:h-12 w-full object-cover rounded-lg shadow-sm border hover:opacity-90 transition"
                         />
                       </a>
                     ) : (
@@ -671,7 +671,7 @@ export default function AddComplaintPage() {
                         href={src}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="border rounded-lg px-2 py-1 text-xs text-gray-700 bg-gray-50 flex items-center justify-start h-12 w-full overflow-hidden text-ellipsis whitespace-nowrap hover:bg-blue-50 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="border rounded-lg px-2 py-1 text-xs text-gray-700 bg-gray-50 flex items-center justify-start h-16 xs:h-12 w-full overflow-hidden text-ellipsis whitespace-nowrap hover:bg-blue-50 active:bg-blue-100 transition focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
                         title={`Click to view ${files[i].name}`}
                       >
                         📄{" "}
@@ -698,7 +698,7 @@ export default function AddComplaintPage() {
 
           {/* Complaint Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">
               Is this complaint personal or public?
             </label>
             <p className="text-xs text-gray-500 mb-2">
@@ -714,9 +714,9 @@ export default function AddComplaintPage() {
                   value="Personal"
                   checked={form.type === "Personal"}
                   onChange={handleChange}
-                  className="text-blue-600 focus:ring-blue-500"
+                  className="text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
-                <span className="text-sm text-gray-700">Personal</span>
+                <span className="text-xs sm:text-sm text-gray-700">Personal</span>
               </label>
 
               <label className="flex items-center gap-2">
@@ -726,9 +726,9 @@ export default function AddComplaintPage() {
                   value="Public"
                   checked={form.type === "Public"}
                   onChange={handleChange}
-                  className="text-blue-600 focus:ring-blue-500"
+                  className="text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-xs sm:text-sm text-gray-700">
                   Public (faced by many)
                 </span>
               </label>
@@ -747,9 +747,9 @@ export default function AddComplaintPage() {
               }
               className="h-4 w-4 text-blue-600"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-xs sm:text-sm text-gray-700">
                 Submit Anonymously
-                <span className="text-gray-500 block text-xs mt-1">
+                <span className="text-gray-500 block text-[10px] xs:text-xs mt-1">
                 Your identity will be hidden from committees and other users, 
                 but your complaint will still be processed normally.
                 </span>
@@ -772,11 +772,11 @@ export default function AddComplaintPage() {
           )}
 
           {/* Submit */}
-          <div className="pt-6 text-right">
+          <div className="pt-4 sm:pt-6 text-right">
             <button
               type="submit"
               disabled={submitting}
-              className={`inline-flex items-center gap-2 bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all ${
+              className={`inline-flex items-center justify-center gap-2 bg-blue-600 text-white font-medium py-2.5 sm:py-2 px-5 sm:px-6 rounded-lg hover:bg-blue-700 active:bg-blue-800 focus:ring-4 focus:ring-blue-200 transition-all text-sm sm:text-base w-full xs:w-auto touch-manipulation ${
                 submitting ? "opacity-70 cursor-not-allowed" : ""
               }`}
             >

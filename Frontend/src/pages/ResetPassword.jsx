@@ -91,11 +91,11 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 relative overflow-auto">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 relative overflow-auto">
       {/* Back Button */}
       <button
         onClick={() => navigate("/forgot-password")}
-        className="absolute top-4 left-4 flex items-center gap-1 text-blue-700 text-sm sm:text-base font-medium hover:underline"
+        className="absolute top-3 sm:top-4 left-3 sm:left-4 flex items-center gap-1 text-blue-700 text-xs sm:text-sm md:text-base font-medium hover:underline z-10 touch-manipulation"
       >
         ← Back
       </button>
@@ -149,7 +149,7 @@ const ResetPassword = () => {
               <button
                 type="button"
                 onClick={handleResendOTP}
-                className="text-blue-600 hover:underline text-xs sm:text-sm font-medium"
+                className="text-blue-600 hover:underline active:text-blue-800 text-xs sm:text-sm font-medium touch-manipulation"
                 disabled={loading}
               >
                 Didn't receive OTP? Resend
@@ -194,16 +194,16 @@ const ResetPassword = () => {
           </div>
 
           {error && (
-            <p className="text-red-500 text-center text-sm">{error}</p>
+            <p className="text-red-500 text-center text-xs sm:text-sm">{error}</p>
           )}
 
           {success && (
-            <p className="text-green-500 text-center text-sm">{success}</p>
+            <p className="text-green-500 text-center text-xs sm:text-sm">{success}</p>
           )}
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base"
+            className="w-full bg-blue-600 text-white font-semibold py-2 sm:py-2.5 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition text-sm sm:text-base touch-manipulation"
             disabled={loading}
           >
             {loading ? "Resetting Password..." : "Reset Password"}

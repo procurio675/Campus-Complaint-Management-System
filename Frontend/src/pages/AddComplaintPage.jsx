@@ -531,8 +531,8 @@ export default function AddComplaintPage() {
               >
                 {successDetails.complaintId}
               </p>
-              <div className="mt-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
+              <div className="mt-3 sm:mt-4">
+                <p className="text-[10px] xs:text-xs text-gray-500 uppercase tracking-wide">
                   Routed to
                 </p>
                 <p 
@@ -544,7 +544,7 @@ export default function AddComplaintPage() {
               </div>
             </div>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 sm:mt-9 flex flex-col gap-2 sm:gap-3 xs:flex-row">
               <button
                 onClick={handleViewComplaints}
                 className="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all"
@@ -612,7 +612,7 @@ export default function AddComplaintPage() {
                 errors.includes("Title cannot exceed 200 characters.")
                   ? "border-red-500"
                   : "border-gray-300"
-              } rounded-lg px-3 py-2 `}
+              } rounded-lg px-3 py-2 text-sm sm:text-base`}
               required
               data-testid="title-input"
             />
@@ -655,7 +655,7 @@ export default function AddComplaintPage() {
                 errors.some((err) => err.toLowerCase().includes("description"))
                   ? "border-red-500"
                   : "border-gray-300"
-              } rounded-lg px-3 py-2 `}
+              } rounded-lg px-3 py-2 text-sm sm:text-base`}
               required
               data-testid="description-input"
             />
@@ -713,7 +713,7 @@ export default function AddComplaintPage() {
               )}
             </div>
 
-            <label className="inline-block mt-2 cursor-pointer text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 px-4 rounded-lg transition-all">
+            <label className="inline-block mt-2 cursor-pointer text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 py-2 px-3 sm:px-4 rounded-lg transition-all touch-manipulation">
               Choose Files
               <input
                 ref={fileInputRef}
@@ -767,7 +767,7 @@ export default function AddComplaintPage() {
                         href={src}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="border rounded-lg px-2 py-1 text-xs text-gray-700 bg-gray-50 flex items-center justify-start h-12 w-full overflow-hidden text-ellipsis whitespace-nowrap hover:bg-blue-50 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="border rounded-lg px-2 py-1 text-xs text-gray-700 bg-gray-50 flex items-center justify-start h-16 xs:h-12 w-full overflow-hidden text-ellipsis whitespace-nowrap hover:bg-blue-50 active:bg-blue-100 transition focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
                         title={`Click to view ${files[i].name}`}
                         data-testid={`file-preview-video-${i}`}
                       >
@@ -824,7 +824,7 @@ export default function AddComplaintPage() {
                   className="text-blue-600 focus:ring-blue-500"
                   data-testid="type-personal-radio"
                 />
-                <span className="text-sm text-gray-700">Personal</span>
+                <span className="text-xs sm:text-sm text-gray-700">Personal</span>
               </label>
 
               <label 
@@ -840,7 +840,7 @@ export default function AddComplaintPage() {
                   className="text-blue-600 focus:ring-blue-500"
                   data-testid="type-public-radio"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-xs sm:text-sm text-gray-700">
                   Public (faced by many)
                 </span>
               </label>
@@ -866,7 +866,7 @@ export default function AddComplaintPage() {
               className="h-4 w-4 text-blue-600"
               data-testid="anonymous-checkbox"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-xs sm:text-sm text-gray-700">
                 Submit Anonymously
                 <span 
                   className="text-gray-500 block text-xs mt-1"
@@ -908,11 +908,11 @@ export default function AddComplaintPage() {
           )}
 
           {/* Submit */}
-          <div className="pt-6 text-right">
+          <div className="pt-4 sm:pt-6 text-right">
             <button
               type="submit"
               disabled={submitting}
-              className={`inline-flex items-center gap-2 bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all ${
+              className={`inline-flex items-center justify-center gap-2 bg-blue-600 text-white font-medium py-2.5 sm:py-2 px-5 sm:px-6 rounded-lg hover:bg-blue-700 active:bg-blue-800 focus:ring-4 focus:ring-blue-200 transition-all text-sm sm:text-base w-full xs:w-auto touch-manipulation ${
                 submitting ? "opacity-70 cursor-not-allowed" : ""
               }`}
               data-testid="submit-complaint-button"

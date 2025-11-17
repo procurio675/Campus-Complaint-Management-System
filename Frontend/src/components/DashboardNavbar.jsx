@@ -50,37 +50,39 @@ const DashboardNavbar = ({
 
   return (
     <header
-      className="bg-white shadow-sm h-20 flex items-center justify-between px-4 sm:px-6 lg:px-8 border-b"
+      className="bg-white shadow-sm h-16 sm:h-20 flex items-center justify-between px-3 sm:px-4 md:px-6 lg:px-8 border-b"
       data-testid={containerTestId}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {showMenuButton && (
           <button
             type="button"
             onClick={onMenuToggle}
-            className="lg:hidden inline-flex items-center justify-center rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="lg:hidden inline-flex items-center justify-center rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
             aria-label={isSidebarOpen ? "Close sidebar menu" : "Open sidebar menu"}
             data-testid={menuButtonTestId}
           >
-            <FaBars size={18} />
+            <FaBars size={16} className="sm:hidden" />
+            <FaBars size={18} className="hidden sm:block" />
           </button>
         )}
-        <h1 className="text-lg sm:text-xl font-semibold text-gray-800" data-testid={titleTestId}>
+        <h1 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 truncate" data-testid={titleTestId}>
           {title}
         </h1>
       </div>
 
-      <div className="flex items-center gap-6" data-testid={headerControlsTestId}>
+      <div className="flex items-center gap-3 sm:gap-6" data-testid={headerControlsTestId}>
         <div className="relative" ref={notificationDropdownRef}>
           <button
             ref={notificationButtonRef}
             onClick={onBellClick}
-            className="relative text-gray-500 hover:text-gray-800 transition-colors"
+            className="relative text-gray-500 hover:text-gray-800 active:text-gray-900 transition-colors p-1 touch-manipulation"
             data-testid={bellButtonTestId}
           >
-            <FaBell size={22} data-testid={bellIconTestId} />
+            <FaBell size={18} className="sm:hidden" data-testid={bellIconTestId} />
+            <FaBell size={22} className="hidden sm:block" data-testid={bellIconTestId} />
             {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+              <span className="absolute top-0 right-0 sm:-top-1 sm:-right-1 inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold leading-none text-white bg-red-600 rounded-full min-w-[18px] sm:min-w-[20px]">
                 <span data-testid={bellBadgeTestId}>
                   {unreadCount > bellBadgeLimit ? `${bellBadgeLimit}+` : unreadCount}
                 </span>
@@ -90,17 +92,17 @@ const DashboardNavbar = ({
 
           {notificationDropdownOpen && (
             <div
-              className="absolute top-full right-0 mt-3 w-96 bg-white rounded-lg shadow-xl z-20 overflow-hidden border max-h-96 flex flex-col"
+              className="fixed sm:absolute top-16 sm:top-full left-0 right-0 sm:left-auto sm:right-0 mt-0 sm:mt-3 w-full sm:w-96 bg-white rounded-none sm:rounded-lg shadow-xl z-20 overflow-hidden border-t sm:border max-h-[calc(100vh-4rem)] sm:max-h-96 flex flex-col"
               data-testid={notificationsWrapperTestId}
             >
-              <div className="p-4 border-b flex items-center justify-between bg-gray-50">
-                <h3 className="font-semibold text-gray-800" data-testid={notificationsTitleTestId}>
+              <div className="p-3 sm:p-4 border-b flex items-center justify-between bg-gray-50">
+                <h3 className="font-semibold text-sm sm:text-base text-gray-800" data-testid={notificationsTitleTestId}>
                   Notifications
                 </h3>
                 {unreadCount > 0 && onMarkAllRead && (
                   <button
                     onClick={onMarkAllRead}
-                    className="text-base text-blue-600 hover:text-blue-800 font-medium"
+                    className="text-xs sm:text-base text-blue-600 hover:text-blue-800 active:text-blue-900 font-medium touch-manipulation"
                     data-testid={markAllReadButtonTestId}
                   >
                     Mark all as read
@@ -109,13 +111,14 @@ const DashboardNavbar = ({
               </div>
               <div className="overflow-y-auto flex-1">
                 {loadingNotifications ? (
-                  <div className="p-4 text-center text-gray-500">Loading...</div>
+                  <div className="p-4 text-center text-sm sm:text-base text-gray-500">Loading...</div>
                 ) : notifications.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
+                  <div className="p-6 sm:p-8 text-center text-gray-500">
                     {emptyState ?? (
                       <>
-                        <FaBell size={32} className="mx-auto mb-2 text-gray-300" />
-                        <p>No notifications yet</p>
+                        <FaBell size={28} className="sm:hidden mx-auto mb-2 text-gray-300" />
+                        <FaBell size={32} className="hidden sm:block mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm sm:text-base">No notifications yet</p>
                       </>
                     )}
                   </div>
@@ -123,22 +126,22 @@ const DashboardNavbar = ({
                   notifications.map((notification) => (
                     <div
                       key={notification._id}
-                      className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
+                      className={`px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer touch-manipulation ${
                         !notification.isRead ? "bg-blue-50" : ""
                       }`}
                       onClick={() => onNotificationClick?.(notification)}
                     >
                       <div className="flex justify-between items-start gap-2">
-                        <div className="flex-1">
-                          <p className="text-base text-gray-800 font-medium">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm sm:text-base text-gray-800 font-medium">
                             {notification.message}
                           </p>
                           {notification.complaint && (
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                               ID: {`CC${notification.complaint._id?.slice(-6).toUpperCase()}`}
                             </p>
                           )}
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
                             {new Date(notification.createdAt).toLocaleDateString()} {" "}
                             {new Date(notification.createdAt).toLocaleTimeString()}
                           </p>
@@ -149,7 +152,7 @@ const DashboardNavbar = ({
                               e.stopPropagation();
                               onNotificationDelete(notification);
                             }}
-                            className="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0"
+                            className="text-gray-400 hover:text-red-600 active:text-red-700 transition-colors flex-shrink-0 p-1 touch-manipulation"
                           >
                             ✕
                           </button>
@@ -166,21 +169,27 @@ const DashboardNavbar = ({
         <div className="relative" ref={dropdownRef} data-testid="user-profile-dropdown">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-3 p-1 sm:p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
             data-testid={profileButtonTestId}
           >
             <div
-              className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm sm:text-lg"
               data-testid={profileAvatarTestId}
             >
               {profileInitial}
             </div>
-            <span className="font-semibold text-gray-700 hidden md:block" data-testid={profileNameTestId}>
+            <span className="font-semibold text-sm sm:text-base text-gray-700 hidden md:block" data-testid={profileNameTestId}>
               {profileName}
             </span>
             <FaChevronDown
+              size={10}
+              className={`text-gray-500 transition-transform sm:hidden ${
+                dropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+            <FaChevronDown
               size={12}
-              className={`text-gray-500 transition-transform ${
+              className={`text-gray-500 transition-transform hidden sm:block ${
                 dropdownOpen ? "rotate-180" : ""
               }`}
             />
@@ -188,24 +197,26 @@ const DashboardNavbar = ({
 
           {dropdownOpen && (
             <div
-              className="absolute top-full right-0 mt-3 w-48 bg-white rounded-lg shadow-xl z-10 overflow-hidden border"
+              className="absolute top-full right-0 mt-2 sm:mt-3 w-44 sm:w-48 bg-white rounded-lg shadow-xl z-10 overflow-hidden border"
               data-testid={profileMenuTestId}
             >
               <Link
                 to={profileRoute}
                 onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
                 data-testid={profileLinkTestId}
               >
-                <FaUserCircle />
+                <FaUserCircle size={16} className="sm:hidden" />
+                <FaUserCircle className="hidden sm:block" />
                 Profile
               </Link>
               <button
                 onClick={onLogout}
-                className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                className="w-full text-left flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors touch-manipulation"
                 data-testid={logoutButtonTestId}
               >
-                <FiLogOut />
+                <FiLogOut size={16} className="sm:hidden" />
+                <FiLogOut className="hidden sm:block" />
                 Logout
               </button>
             </div>

@@ -131,6 +131,143 @@ export default function AddComplaintPage() {
     if (fileInputRef.current) fileInputRef.current.value = null;
   };
 
+  /**
+   * Normalize text for comparison: lowercase, remove punctuation, collapse spaces
+   */
+  const normalizeForComparison = (text) => {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+      .replace(/\s+/g, ' ')      // Collapse multiple spaces
+      .trim();
+  };
+
+  /**
+   * Tokenize text into words
+   */
+  const tokenize = (text) => {
+    const normalized = normalizeForComparison(text);
+    return normalized.split(/\s+/).filter(word => word.length > 0);
+  };
+
+  /**
+   * Check if description has excessive word repetition (spam detection)
+   * Only runs when description has >= 30 characters
+   */
+  const hasExcessiveRepetition = (description) => {
+    const descLength = description.trim().length;
+    
+    // Only check if description has at least 30 characters
+    if (descLength < 30) {
+      return false;
+    }
+
+    const descWords = tokenize(description);
+    const descWordCount = descWords.length;
+    
+    if (descWordCount === 0) {
+      return false;
+    }
+
+    // Check for excessive word repetition within the description
+    const wordCounts = {};
+    descWords.forEach(word => {
+      wordCounts[word] = (wordCounts[word] || 0) + 1;
+    });
+    
+    const frequencies = Object.values(wordCounts);
+    if (frequencies.length === 0) {
+      return false;
+    }
+    
+    const maxFreq = Math.max(...frequencies);
+    const uniqueWords = frequencies.length;
+    
+    // Check 1: Single word appears too many times
+    // For short descriptions (< 50 words), threshold is 8
+    // For longer descriptions, threshold scales with length
+    const threshold = descWordCount < 50 ? 8 : Math.max(8, Math.floor(descWordCount * 0.15));
+    if (maxFreq > threshold) {
+      return true;
+    }
+    
+    // Check 2: High repetition ratio (many words repeated)
+    // If more than 40% of unique words are repeated (appear 2+ times), it's likely spam
+    const repeatedWords = frequencies.filter(freq => freq >= 2).length;
+    const repetitionRatio = repeatedWords / uniqueWords;
+    if (descWordCount < 80 && repetitionRatio > 0.4 && maxFreq >= 3) {
+      return true;
+    }
+    
+    // Check 3: Very low vocabulary diversity (few unique words relative to total)
+    const vocabularyRatio = uniqueWords / descWordCount;
+    if (descWordCount >= 8 && vocabularyRatio < 0.5 && maxFreq >= 3) {
+      return true;
+    }
+    
+    // Check 4: Check for repeated phrases (2-3 word sequences)
+    // This catches patterns like "fan problem fan problem fan problem"
+    if (descWordCount >= 6) {
+      const phraseCounts = {};
+      // Check 2-word phrases
+      for (let i = 0; i < descWords.length - 1; i++) {
+        const phrase = `${descWords[i]} ${descWords[i + 1]}`;
+        phraseCounts[phrase] = (phraseCounts[phrase] || 0) + 1;
+      }
+      
+      const phraseFreqs = Object.values(phraseCounts);
+      if (phraseFreqs.length > 0) {
+        const maxPhraseFreq = Math.max(...phraseFreqs);
+        // If a 2-word phrase appears 3+ times in a short description, it's repetitive
+        if (descWordCount < 30 && maxPhraseFreq >= 3) {
+          return true;
+        }
+        // For longer descriptions, allow more repetition but still flag excessive
+        if (descWordCount >= 30 && descWordCount < 80 && maxPhraseFreq >= 4) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+
+  /**
+   * Check if description is essentially a copy of the title
+   * Only runs when description has >= 30 characters
+   */
+  const isDescriptionCopyOfTitle = (title, description) => {
+    const descLength = description.trim().length;
+    
+    // Only check if description has at least 30 characters
+    if (descLength < 30) {
+      return false;
+    }
+
+    const titleWords = tokenize(title);
+    const descWords = tokenize(description);
+    const descWordCount = descWords.length;
+    
+    if (descWordCount === 0) {
+      return false;
+    }
+
+    const titleWordSet = new Set(titleWords);
+    
+    // Count how many description words appear in title
+    const overlapCount = descWords.filter(word => titleWordSet.has(word)).length;
+    const overlapRatio = descWordCount > 0 ? overlapCount / descWordCount : 0;
+    
+    // Trigger error only if BOTH conditions are met:
+    // 1. Description is relatively short (< 80 words)
+    // 2. At least 90% of description words also appear in title
+    if (descWordCount < 80 && overlapRatio >= 0.9) {
+      return true;
+    }
+    
+    return false;
+  };
+
   const validateComplaintText = (title, desc) => {
     const errors = [];
     const clean = (text) =>
@@ -141,35 +278,55 @@ export default function AddComplaintPage() {
         .replace(/\s+/g, " ")
         .trim();
 
-    const cleanTitle = clean(title);
-    const cleanDesc = clean(desc);
+    // Step 1: Trim title and description
+    const trimmedTitle = clean(title || '');
+    const trimmedDesc = clean(desc || '');
 
     // Title Validation (Character-based)
-    if (!cleanTitle || cleanTitle.length < 5)
+    if (!trimmedTitle || trimmedTitle.length < 5) {
       errors.push("Title must be at least 5 characters long.");
-    if (cleanTitle.length > 200)
+    }
+    if (trimmedTitle.length > 200) {
       errors.push("Title cannot exceed 200 characters.");
+    }
 
-    // Description Validation (Character-based)
-    if (!cleanDesc || cleanDesc.length < 30)
-      errors.push("Description must be at least 30 characters long.");
+    // Step 2: Run the 30-character validation with its own error message
+    const descLength = trimmedDesc.length;
+    if (descLength < 30) {
+      errors.push("Please describe your complaint in at least 30 characters.");
+    }
 
-    if (cleanDesc.length > 3000)
+    if (descLength > 3000) {
       errors.push("Description cannot exceed 3000 characters.");
+    }
+
+    // Step 3: Run the "repeats the same words" check (only if descLength >= 30)
+    // This check is skipped if description is too short (< 30 chars)
+    if (descLength >= 30) {
+      // Check if description is a copy of the title
+      if (isDescriptionCopyOfTitle(trimmedTitle, trimmedDesc)) {
+        errors.push("Complaint repeats the same words. Add more detail about the issue.");
+      }
+      // Check for excessive word repetition within the description
+      else if (hasExcessiveRepetition(trimmedDesc)) {
+        errors.push("Complaint repeats the same words. Add more detail about the issue.");
+      }
+    }
 
     // Character-repetition spam check
-    if (/(.)\1{29,}/.test(cleanDesc))
+    if (/(.)\1{29,}/.test(trimmedDesc)) {
       errors.push(
         "Description has excessive repetition of a single character — please revise."
       );
+    }
 
     // Ensuring that title has at least one visible alphanumeric character
-    if (!/[A-Za-z0-9]/.test(cleanTitle)) {
+    if (trimmedTitle && !/[A-Za-z0-9]/.test(trimmedTitle)) {
       errors.push("Title must contain at least one letter or number.");
     }
 
     // Ensuring that description has at least one visible alphanumeric character
-    if (!/[A-Za-z0-9]/.test(cleanDesc)) {
+    if (trimmedDesc && !/[A-Za-z0-9]/.test(trimmedDesc)) {
       errors.push("Description must contain at least one letter or number.");
     }
 
@@ -200,11 +357,24 @@ export default function AddComplaintPage() {
         return;
       }
 
+      // Use cleaned/trimmed values from validation (already validated)
+      const clean = (text) =>
+        text
+          .normalize("NFKC")
+          .replace(/[\u200B-\u200D\uFEFF]/g, "")
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      
+      const cleanedTitle = clean(form.title || '');
+      const cleanedDesc = clean(form.desc || '');
+      const cleanedLocation = clean(form.location || '');
+
       // Create FormData for file uploads
       const formData = new FormData();
-      formData.append("title", form.title.trim());
-      formData.append("description", form.desc.trim());
-      formData.append("location", form.location?.trim() || "");
+      formData.append("title", cleanedTitle);
+      formData.append("description", cleanedDesc);
+      formData.append("location", cleanedLocation);
       formData.append("type", form.type);
       formData.append("isAnonymous", form.isAnonymous ? "true" : "false");
 
@@ -235,18 +405,38 @@ export default function AddComplaintPage() {
       });
       resetFormState();
     } catch (error) {
-      console.error("Submit Complaint Error:", error?.response || error);
-      const status = error?.response?.status;
-      const backendMessage = error?.response?.data?.message;
+      console.error("Submit Complaint Error:", {
+        response: error?.response,
+        request: error?.request,
+        message: error?.message,
+        code: error?.code,
+        stack: error?.stack,
+      });
 
-      if (status === 400 && backendMessage?.toLowerCase().includes("spam")) {
-        setErrors([backendMessage]);
+      // Differentiate between different error types
+      if (error.response) {
+        // Server responded with 4xx/5xx
+        const status = error.response.status;
+        const backendMessage = error.response.data?.message;
+
+        if (status === 400 && backendMessage?.toLowerCase().includes("spam")) {
+          setErrors([backendMessage]);
+        } else if (status === 400) {
+          setErrors([backendMessage || "Invalid complaint data. Please check your input."]);
+        } else if (status >= 500) {
+          setErrors([backendMessage || "Server error while submitting complaint. Please try again."]);
+        } else {
+          setErrors([backendMessage || "Failed to submit complaint. Please try again."]);
+        }
+      } else if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        // Network error - server unreachable or connection reset
+        setErrors(["Cannot reach the server. Is http://localhost:3001 running? Please check your connection and try again."]);
+      } else if (error.request) {
+        // Request was made but no response received
+        setErrors(["No response from server. The server may be restarting. Please wait a moment and try again."]);
       } else {
-        const errorMessage =
-          backendMessage ||
-          error?.message ||
-          "Failed to submit complaint. Please try again.";
-        setErrors([errorMessage]);
+        // Something else happened
+        setErrors([error?.message || "Unexpected error while submitting complaint. Please try again."]);
       }
     } finally {
       setSubmitting(false);

@@ -18,7 +18,19 @@ const ComplaintSchema = new mongoose.Schema({
     category: {
         // Auto-routed by Gemini AI
         type: String,
-        enum: ['Hostel Management', 'Cafeteria', 'Tech-Support', 'Sports', 'Academic', 'Internal Complaints', 'Annual Fest', 'Cultural', 'Student Placement', 'Admin'],
+        enum: [
+            'Internal Complaints Committee',
+            'Internal Complaints', // Legacy name for backward compatibility
+            'Hostel Management',
+            'Cafeteria',
+            'Tech-Support',
+            'Sports',
+            'Academic',
+            'Annual Fest',
+            'Cultural',
+            'Student Placement',
+            'Admin'
+        ],
         required: true,
     },
     priority: {

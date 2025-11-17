@@ -4,6 +4,30 @@ import { classifyComplaint, classifySubcategory } from '../utils/aiRouting.js';
 import User from '../models/userModel.js';
 import { sendStatusUpdateEmail } from '../utils/emailService.js';
 
+/**
+ * Normalize category name to canonical form.
+ * Maps all Internal Complaints Committee variations to "Internal Complaints Committee".
+ */
+export function normalizeCategory(category) {
+  if (!category) return category;
+  
+  const normalized = String(category).trim();
+  const lower = normalized.toLowerCase();
+  
+  // Map all ICC variations to canonical "Internal Complaints Committee"
+  const iccVariants = [
+    'internal complaints',
+    'internal complaints committee',
+    'internal complaint committee',
+  ];
+  
+  if (iccVariants.includes(lower)) {
+    return 'Internal Complaints Committee';
+  }
+  
+  return normalized;
+}
+
 const COMMITTEE_CATEGORY_MAP = {
   Hostels: 'Hostel Management',
   Hostel: 'Hostel Management',
@@ -14,8 +38,9 @@ const COMMITTEE_CATEGORY_MAP = {
   Tech: 'Tech-Support',
   'Tech Support': 'Tech-Support',
   Sports: 'Sports',
-  'Disciplinary Action': 'Internal Complaints',
-  'Internal Complaints': 'Internal Complaints',
+  'Disciplinary Action': 'Internal Complaints Committee',
+  'Internal Complaints': 'Internal Complaints Committee',
+  'Internal Complaints Committee': 'Internal Complaints Committee',
   Academic: 'Academic',
   'Annual Fest': 'Annual Fest',
   Cultural: 'Cultural',
@@ -27,8 +52,10 @@ const COMMITTEE_CATEGORY_MAP = {
   'General Complaints': 'Admin',
 };
 
-export const resolveCommitteeCategory = (committeeType) =>
-  COMMITTEE_CATEGORY_MAP[committeeType] || committeeType;
+export const resolveCommitteeCategory = (committeeType) => {
+  const mapped = COMMITTEE_CATEGORY_MAP[committeeType] || committeeType;
+  return normalizeCategory(mapped);
+};
 
 /**
  * Create a new complaint
@@ -57,8 +84,12 @@ export const createComplaint = async (req, res) => {
         });
       }
 
-      console.error('AI Routing Error:', error);
-      // Use fallback classification
+      console.error('AI Routing Error:', {
+        message: error?.message || error?.toString(),
+        code: error?.code,
+        stack: error?.stack,
+      });
+      // Use fallback classification instead of crashing
       aiResult = {
         committee: 'Academic',
         priority: 'Medium',
@@ -70,13 +101,16 @@ export const createComplaint = async (req, res) => {
       .map((file) => file.path || file.secure_url)
       .filter(Boolean);
 
+    // Normalize category to canonical form (especially for ICC variations)
+    const normalizedCategory = normalizeCategory(aiResult.committee);
+    
     // Create complaint in database
     const complaint = await Complaint.create({
       userId,
       title: title.trim(),
       description: description.trim(),
       location: location?.trim() || '',
-      category: aiResult.committee,
+      category: normalizedCategory,
       priority: aiResult.priority,
       type: type === 'Personal' ? 'personal' : 'general',
       attachments,
@@ -89,7 +123,11 @@ export const createComplaint = async (req, res) => {
       try {
         // Find all committee users and filter by resolved category match
         const committeeUsers = await User.find({ role: 'committee' }).select('_id committeeType name email');
-        const recipients = committeeUsers.filter((u) => resolveCommitteeCategory(u.committeeType) === complaint.category);
+        const normalizedComplaintCategory = normalizeCategory(complaint.category);
+        const recipients = committeeUsers.filter((u) => {
+          const userCategory = resolveCommitteeCategory(u.committeeType);
+          return normalizeCategory(userCategory) === normalizedComplaintCategory;
+        });
 
         if (recipients.length > 0) {
           const notifPromises = recipients.map((r) => {
@@ -127,9 +165,14 @@ export const createComplaint = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Create Complaint Error:', error);
+    console.error('Create Complaint Error:', {
+      message: error?.message || error?.toString(),
+      stack: error?.stack,
+      name: error?.name,
+    });
     res.status(500).json({
-      message: error.message || 'Failed to submit complaint',
+      message: 'Internal server error while creating complaint',
+      details: process.env.NODE_ENV === 'development' ? error?.message : undefined,
     });
   }
 };
@@ -302,13 +345,18 @@ export const getAssignedComplaintsStats = async (req, res) => {
       });
     }
 
+    // For ICC, query both "Internal Complaints Committee" and legacy "Internal Complaints"
+    const categoryQuery = normalizeCategory(category) === 'Internal Complaints Committee'
+      ? { $in: ['Internal Complaints Committee', 'Internal Complaints'] }
+      : category;
+
     // Get counts by status
     const [total, pending, inProgress, resolved, rejected] = await Promise.all([
-      Complaint.countDocuments({ category }),
-      Complaint.countDocuments({ category, status: 'pending' }),
-      Complaint.countDocuments({ category, status: 'in-progress' }),
-      Complaint.countDocuments({ category, status: 'resolved' }),
-      Complaint.countDocuments({ category, status: 'rejected' }),
+      Complaint.countDocuments({ category: categoryQuery }),
+      Complaint.countDocuments({ category: categoryQuery, status: 'pending' }),
+      Complaint.countDocuments({ category: categoryQuery, status: 'in-progress' }),
+      Complaint.countDocuments({ category: categoryQuery, status: 'resolved' }),
+      Complaint.countDocuments({ category: categoryQuery, status: 'rejected' }),
     ]);
 
     res.status(200).json({
@@ -352,8 +400,13 @@ export const getAssignedComplaints = async (req, res) => {
     }
 
     // Find complaints assigned to this committee's category
+    // For ICC, query both "Internal Complaints Committee" and legacy "Internal Complaints"
+    const categoryQuery = normalizeCategory(category) === 'Internal Complaints Committee'
+      ? { $in: ['Internal Complaints Committee', 'Internal Complaints'] }
+      : category;
+    
     // Note: We will sort in-memory by upvotes (desc) then by creation date (desc)
-    const complaints = await Complaint.find({ category })
+    const complaints = await Complaint.find({ category: categoryQuery })
       .populate('userId', 'name email')
       .select('-__v');
     
@@ -427,6 +480,15 @@ export const getCommitteeAnalytics = async (req, res) => {
     // Helper to build a flexible category match (exact or case-insensitive or substring)
     const matchCategory = (val) => {
       if (!val || typeof val !== 'string') return {};
+      const normalized = normalizeCategory(val);
+      
+      // For ICC, match both "Internal Complaints Committee" and legacy "Internal Complaints"
+      if (normalized === 'Internal Complaints Committee') {
+        return {
+          category: { $in: ['Internal Complaints Committee', 'Internal Complaints'] }
+        };
+      }
+      
       const escaped = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       return {
         $or: [
@@ -840,8 +902,11 @@ export const updateComplaintStatus = async (req, res) => {
     // If committee, verify they have access to this complaint's category
     if (user.role === 'committee') {
       const allowedCategory = resolveCommitteeCategory(user.committeeType);
+      // Normalize both sides for comparison (handles ICC variations)
+      const normalizedComplaintCategory = normalizeCategory(complaint.category);
+      const normalizedAllowedCategory = normalizeCategory(allowedCategory);
       
-      if (complaint.category !== allowedCategory) {
+      if (normalizedComplaintCategory !== normalizedAllowedCategory) {
         return res.status(403).json({
           message: 'You do not have permission to update this complaint',
         });

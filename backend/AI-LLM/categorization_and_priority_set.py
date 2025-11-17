@@ -108,7 +108,18 @@ def _norm(s: str) -> str:
     return re.sub(r"\s+"," ",(s or "").strip().lower())
 
 def _contains_word(text: str, word: str) -> bool:
-    return re.search(r"\b"+re.escape(word.lower())+r"\b", text) is not None
+    """
+    Check if text contains `word` (or phrase), case-insensitive.
+    Handles both single words and multi-word phrases.
+    """
+    text_lower = text.lower()
+    word_lower = word.lower()
+    
+    # For multi-word phrases, just check substring
+    if " " in word_lower:
+        return word_lower in text_lower
+    # For single words, use word boundaries
+    return re.search(r"\b" + re.escape(word_lower) + r"\b", text_lower) is not None
 
 def _tokenize(text: str):
     return re.findall(r"\b[a-zA-Z0-9']{2,}\b", _norm(text))
@@ -123,9 +134,84 @@ def _match_scores(text: str, rules: dict) -> dict:
 
 # Safety / ICC override
 def _is_internal_complaint(text: str) -> bool:
-    for kw in CATEGORY_RULES["Internal Complaints"]:
+    """
+    Check if complaint should be routed to Internal Complaints Committee (ICC).
+    Returns True if ANY of these conditions are met:
+    1. Contains harassment, abuse, threats, or inappropriate behaviour keywords
+    2. Mentions staff/worker/faculty/student behavior affecting safety/dignity/well-being
+    3. Contains "rude behaviour" combined with harassment keywords
+    """
+    # Core ICC keywords and variations (case-insensitive)
+    icc_keywords = [
+        "harass", "harassed", "harassment",
+        "abuse", "abused", "abusing",
+        "threat", "threaten", "threatened",
+        "bully", "bullying",
+        "intimidate", "intimidated",
+        "stalk", "stalking",
+        "molest", "molested",
+        "assault", "assaulted",
+        "ragging", "ragged",
+        "discrimination", "discriminate", "discriminated",
+        "sexual", "sexually",
+        "rape", "raped",
+        "violence", "violent",
+        "forced", "force",
+        "humiliate", "humiliated", "humiliation",
+        "offensive", "offend",
+        "unsafe", "unsafety",
+        "targeted", "targeting",
+        "inappropriate behaviour", "inappropriate behavior",
+        "misconduct"
+    ]
+    
+    # Check for core keywords
+    for kw in icc_keywords:
         if _contains_word(text, kw):
             return True
+    
+    # Check for "rude behaviour" combined with harassment-related keywords
+    rude_harassment_patterns = [
+        "rude behaviour", "rude behavior", "rudely",
+        "bad behaviour", "bad behavior", "badly behaved"
+    ]
+    harassment_indicators = [
+        "harass", "abuse", "threat", "bully", "intimidate", 
+        "stalk", "molest", "assault", "unsafe", "targeted"
+    ]
+    
+    has_rude_behaviour = any(_contains_word(text, pattern) for pattern in rude_harassment_patterns)
+    has_harassment_indicator = any(_contains_word(text, indicator) for indicator in harassment_indicators)
+    
+    if has_rude_behaviour and has_harassment_indicator:
+        return True
+    
+    # Check for staff/worker/faculty/student behavior affecting safety/dignity/well-being
+    person_roles = ["staff", "worker", "faculty", "student", "employee", "mess worker", "mess staff"]
+    safety_dignity_keywords = [
+        "safety", "dignity", "well-being", "wellbeing", "mental", "physical",
+        "health", "harm", "harmed", "hurt", "hurting", "endanger", "endangered"
+    ]
+    
+    has_person_role = any(_contains_word(text, role) for role in person_roles)
+    has_safety_concern = any(_contains_word(text, keyword) for keyword in safety_dignity_keywords)
+    
+    # If mentions person role + safety/dignity concern + behavior-related words
+    behavior_words = ["behave", "behaved", "behaviour", "behavior", "act", "acted", "action"]
+    has_behavior_mention = any(_contains_word(text, word) for word in behavior_words)
+    
+    if has_person_role and has_safety_concern and has_behavior_mention:
+        return True
+    
+    # Check for "misconduct" combined with behavior-related issues
+    if _contains_word(text, "misconduct"):
+        behavior_issue_keywords = [
+            "behave", "behaviour", "behavior", "act", "action", "rude", 
+            "inappropriate", "harass", "abuse", "threat", "unsafe"
+        ]
+        if any(_contains_word(text, keyword) for keyword in behavior_issue_keywords):
+            return True
+    
     return False
 
 # Spam detection
@@ -150,7 +236,7 @@ def _disambiguate_mess(title: str, body: str) -> str | None:
 
     # If human-safety → ICC
     if _is_internal_complaint(text):
-        return "Internal Complaints"
+        return "Internal Complaints Committee"
 
     # Animal / wildlife or security issues in the mess/canteen should escalate to Admin
     ADMIN_WORDS = [
@@ -229,7 +315,7 @@ def _rule_committee(title: str, body: str) -> str:
 
     # 1. ICC override
     if _is_internal_complaint(text):
-        return "Internal Complaints"
+        return "Internal Complaints Committee"
 
     # 2. Animal / Wildlife override → ADMIN
     ANIMAL_WORDS = [
@@ -265,8 +351,33 @@ def _rule_committee(title: str, body: str) -> str:
     # Otherwise choose best-scoring committee
     return top_key
 
-def _rule_priority(title: str, body: str) -> str:
+def _rule_priority(title: str, body: str, is_icc: bool = False) -> str:
+    """
+    Determine priority for complaint.
+    For ICC complaints: "High" if harassment/assault/threat/abuse/intimidation/safety concerns appear.
+    Otherwise: use existing priority logic.
+    """
     text = _norm(title + " " + body)
+    
+    # ICC priority rules: High if any harassment/assault/threat/abuse/intimidation/safety concern
+    if is_icc:
+        high_priority_icc_keywords = [
+            "harass", "harassed", "harassment",
+            "abuse", "abused", "abusing",
+            "threat", "threaten", "threatened",
+            "assault", "assaulted",
+            "intimidate", "intimidated",
+            "bully", "bullying",
+            "unsafe", "unsafety",
+            "safety", "endanger", "endangered",
+            "molest", "molested",
+            "stalk", "stalking"
+        ]
+        if any(_contains_word(text, keyword) for keyword in high_priority_icc_keywords):
+            return "High"
+        # For other ICC complaints, use existing priority logic below
+    
+    # Existing priority logic
     for level in ("High","Medium","Low"):
         if any(_contains_word(text, w) for w in PRIORITY_RULES[level]):
             return level
@@ -276,9 +387,12 @@ def _rule_priority(title: str, body: str) -> str:
 def _ensemble(title: str, body: str, llm_out: dict):
     text = _norm(title + " " + body)
 
-    # ICC always wins
-    if _is_internal_complaint(text):
-        return "Internal Complaints","High"
+    # ICC always wins - check first
+    is_icc = _is_internal_complaint(text)
+    if is_icc:
+        # Use priority logic that checks for High-priority ICC keywords
+        priority = _rule_priority(title, body, is_icc=True)
+        return "Internal Complaints Committee", priority
 
     # LLM override only when VERY confident
     llm_conf = float(llm_out.get("confidence") or 0.0)
@@ -291,7 +405,7 @@ def _ensemble(title: str, body: str, llm_out: dict):
 
     # Otherwise deterministic rules
     committee = _rule_committee(title, body)
-    priority = _rule_priority(title, body)
+    priority = _rule_priority(title, body, is_icc=False)
     return committee, priority
 
 # ---------------- Main ----------------

@@ -74,6 +74,10 @@ const CATEGORY_RULES = {
     'harassment', 'ragging', 'bullying', 'assault', 'discrimination', 'misconduct',
     'abuse', 'violence', 'threat', 'safety incident'
   ],
+  'Internal Complaints Committee': [
+    'harassment', 'ragging', 'bullying', 'assault', 'discrimination', 'misconduct',
+    'abuse', 'violence', 'threat', 'safety incident'
+  ],
   'Annual Fest': [
     'event', 'fest', 'annual', 'volunteer', 'sponsor', 'celebration', 'gala',
     'festival', 'show', 'stage'
@@ -266,12 +270,65 @@ function detectSpam(title, body) {
     return 'Complaint does not include enough meaningful details. Please describe the problem clearly.';
   }
 
-  if (tokens.length >= 10) {
-    if (distinctMeaningful.size < 3) {
+  // "Repeats the same words" check - only for descriptions with >= 30 characters
+  // Use the same logic as frontend validation
+  const descLength = (body || '').trim().length;
+  if (descLength >= 30) {
+    // Helper functions (same as frontend)
+    const normalizeForComparison = (text = '') => {
+      return String(text)
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')   // remove punctuation
+        .replace(/\s+/g, ' ')       // collapse spaces
+        .trim();
+    };
+
+    const tokenize = (text = '') => {
+      const normalized = normalizeForComparison(text);
+      return normalized.split(/\s+/).filter(w => w.length > 0);
+    };
+
+    const isDescriptionCopyOfTitle = (title, description) => {
+      const titleWords = tokenize(title);
+      const descWords = tokenize(description);
+      const descWordCount = descWords.length;
+      
+      if (descWordCount === 0) {
+        return false;
+      }
+
+      const titleWordSet = new Set(titleWords);
+      const overlapCount = descWords.filter(w => titleWordSet.has(w)).length;
+      const overlapRatio = overlapCount / descWordCount;
+
+      // Return true (meaning: trigger the "repeats" error) ONLY IF:
+      // 1. descWordCount < 80, AND
+      // 2. overlapRatio >= 0.9
+      if (descWordCount < 80 && overlapRatio >= 0.9) {
+        return true;
+      }
+
+      // Optional spam safeguard
+      if (descWordCount < 50) {
+        const wordCounts = {};
+        descWords.forEach(w => {
+          wordCounts[w] = (wordCounts[w] || 0) + 1;
+        });
+        const freqs = Object.values(wordCounts);
+        if (freqs.length > 0) {
+          const maxFreq = Math.max(...freqs);
+          if (maxFreq > 8) {
+            return true;   // clearly spammy repetition
+          }
+        }
+      }
+
+      return false;
+    };
+
+    if (isDescriptionCopyOfTitle(title || '', body || '')) {
       return 'Complaint repeats the same words. Add more detail about the issue.';
     }
-  } else if (distinctMeaningful.size < 3) {
-    return 'Complaint repeats the same words. Add more detail about the issue.';
   }
 
   return null;
@@ -342,17 +399,44 @@ export async function classifyComplaint(title, body) {
       String(body ?? ''),
     ];
 
-    const { stdout } = await execFileAsync(pythonCmd, args, {
-      cwd: path.join(__dirname, '..'),
-      maxBuffer: 1024 * 1024 * 10,
-    });
+    // Wrap Python execution in a promise with proper error handling
+    let stdout, stderr;
+    try {
+      const result = await execFileAsync(pythonCmd, args, {
+        cwd: path.join(__dirname, '..'),
+        maxBuffer: 1024 * 1024 * 10,
+      });
+      stdout = result.stdout;
+      stderr = result.stderr;
+    } catch (execError) {
+      // Handle Python execution errors gracefully
+      console.error('[AI Routing] Python execution error:', {
+        message: execError?.message,
+        code: execError?.code,
+        signal: execError?.signal,
+        stderr: execError?.stderr?.toString(),
+        stdout: execError?.stdout?.toString(),
+      });
+      // Fall through to use rule-based classification
+      throw new Error('Python script execution failed');
+    }
 
-    const jsonLine = stdout.trim().split('\n')[0];
+    const jsonLine = stdout?.trim().split('\n')[0];
     if (!jsonLine) {
       throw new Error('No output from AI script');
     }
 
-    const result = JSON.parse(jsonLine);
+    let result;
+    try {
+      result = JSON.parse(jsonLine);
+    } catch (parseError) {
+      console.error('[AI Routing] JSON parse error:', {
+        jsonLine,
+        error: parseError?.message,
+      });
+      throw new Error('Invalid JSON from AI script');
+    }
+    
     llmResult = result;
 
     if (result.status === 'invalid') {
@@ -618,6 +702,15 @@ export async function classifySubcategory(title, body, committeeType, allowedLis
       'Privacy Concerns': ['privacy', 'data', 'confidential'],
       'Safety Violations': ['safety', 'violation', 'unsafe', 'danger'],
     },
+    'Internal Complaints Committee': {
+      'Harassment Complaints': ['harass', 'harassment', 'sexual', 'assault', 'ragging'],
+      'Discrimination Complaints': ['discriminat', 'discrimination', 'bias'],
+      'Bullying or Ragging': ['bully', 'bullying', 'ragging'],
+      'Staff Misconduct': ['staff misconduct', 'staff', 'misconduct'],
+      'Student Misconduct': ['student misconduct', 'student', 'misconduct'],
+      'Privacy Concerns': ['privacy', 'data', 'confidential'],
+      'Safety Violations': ['safety', 'violation', 'unsafe', 'danger'],
+    },
   };
 
   const committeeRules = rules[committeeType] || {};
@@ -763,9 +856,35 @@ function ruleBasedPriority(text) {
   return { priority: 'Medium', confidence: 0 };
 }
 
+/**
+ * Check if a committee name is Internal Complaints Committee (ICC).
+ * Handles various name variations case-insensitively.
+ */
+function isInternalComplaintsCommittee(committeeName) {
+  if (!committeeName) return false;
+  const normalized = String(committeeName).trim().toLowerCase();
+  const iccVariants = [
+    'internal complaints',
+    'internal complaints committee',
+    'internal complaint committee',
+  ];
+  return iccVariants.includes(normalized);
+}
+
 function selectCommittee({ ml, llm, rule }) {
   if (llm?.status === 'invalid') {
     return fallbackCommittee(ml, rule);
+  }
+
+  // ICC is safety/harassment related; if any model chooses ICC, it overrides all others.
+  const llmCommittee = llm?.committee;
+  const mlCommittee = ml?.committee;
+  const ruleCommittee = rule?.committee;
+  
+  if (isInternalComplaintsCommittee(llmCommittee) || 
+      isInternalComplaintsCommittee(mlCommittee) || 
+      isInternalComplaintsCommittee(ruleCommittee)) {
+    return 'Internal Complaints Committee';
   }
 
   // Priority 1: Rule-based matching with STRONG keyword matches (most reliable)
@@ -871,6 +990,15 @@ function selectPriority({ ml, llm, rule }) {
 }
 
 function fallbackCommittee(ml, rule) {
+  // ICC is safety/harassment related; if any model chooses ICC, it overrides all others.
+  const mlCommittee = ml?.committee;
+  const ruleCommittee = rule?.committee;
+  
+  if (isInternalComplaintsCommittee(mlCommittee) || 
+      isInternalComplaintsCommittee(ruleCommittee)) {
+    return 'Internal Complaints Committee';
+  }
+  
   // Prioritize rule-based matching in fallback too
   if (rule.committee && rule.committee !== 'Academic') {
     // If rule has strong match, use it

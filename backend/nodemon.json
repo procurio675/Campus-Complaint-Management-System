@@ -1,0 +1,18 @@
+{
+  "watch": ["."],
+  "ignore": [
+    "out/**",
+    "out/*",
+    "AI-LLM/out/**",
+    "AI-LLM/out/*",
+    "uploads/**",
+    "temp/**",
+    "logs/**",
+    "*.log",
+    "node_modules/**",
+    ".git/**"
+  ],
+  "ext": "js,json",
+  "delay": 1000
+}
+

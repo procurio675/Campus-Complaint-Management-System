@@ -54,7 +54,7 @@ test.describe("Complaint Form - UX & STATE", () => {
   test("should show file remove button when hovering file preview", async ({ page }) => {
     const addPage = new AddComplaintPage(page);
 
-    await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
 
     await expect(page.getByTestId("file-preview-item-0")).toBeVisible();
 

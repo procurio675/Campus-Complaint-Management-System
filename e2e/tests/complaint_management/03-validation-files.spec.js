@@ -29,7 +29,7 @@ test.describe("Complaint Form - FILE VALIDATION", () => {
   test("should reject invalid file type", async ({ page }) => {
     const addPage = new AddComplaintPage(page);
 
-    await addPage.uploadFile("src/data/test-files/text-file.txt");
+    await addPage.uploadFile("e2e/src/data/test-files/text-file.txt");
     await addPage.submit();
 
     await expect(page.getByTestId("error-container")).toBeVisible();
@@ -38,7 +38,7 @@ test.describe("Complaint Form - FILE VALIDATION", () => {
   test("should reject files larger than 10MB", async ({ page }) => {
     const addPage = new AddComplaintPage(page);
 
-    await addPage.uploadFile("src/data/test-files/image-10MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-10MB.jpg");
     await addPage.submit();
 
     await expect(page.getByTestId("error-container")).toBeVisible();
@@ -47,12 +47,12 @@ test.describe("Complaint Form - FILE VALIDATION", () => {
   test("should reject more than 3 files", async ({ page }) => {
     const addPage = new AddComplaintPage(page);
 
-    await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
-    await addPage.uploadFile("src/data/test-files/image-8MB.jpg");
-    await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-8MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
 
     // 4th upload
-    await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
 
     await expect(page.getByTestId("error-container")).toBeVisible();
   });
@@ -60,11 +60,11 @@ test.describe("Complaint Form - FILE VALIDATION", () => {
   test("should reject when total upload size exceeds 20MB", async ({ page }) => {
     const addPage = new AddComplaintPage(page);
 
-    await addPage.uploadFile("src/data/test-files/image-8MB.jpg");
-    await addPage.uploadFile("src/data/test-files/image-8MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-8MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-8MB.jpg");
 
     // Third file pushes total > 20MB
-    await addPage.uploadFile("src/data/test-files/image-8MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-8MB.jpg");
 
     await expect(page.getByTestId("error-container")).toBeVisible();
   });
@@ -72,7 +72,7 @@ test.describe("Complaint Form - FILE VALIDATION", () => {
   test("should show preview for valid image files", async ({ page }) => {
     const addPage = new AddComplaintPage(page);
 
-    await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
 
     await expect(page.getByTestId("file-preview-item-0")).toBeVisible();
   });
@@ -80,7 +80,7 @@ test.describe("Complaint Form - FILE VALIDATION", () => {
   test("should reject large video files", async ({ page }) => {
     const addPage = new AddComplaintPage(page);
 
-    await addPage.uploadFile("src/data/test-files/video-large-21MB.mp4"); // large but valid type
+    await addPage.uploadFile("e2e/src/data/test-files/video-large-21MB.mp4"); // large but valid type
 
     await expect(page.getByTestId("error-container")).toBeVisible();
   });
@@ -88,8 +88,8 @@ test.describe("Complaint Form - FILE VALIDATION", () => {
 //   test("should remove a single file", async ({ page }) => {
 //     const addPage = new AddComplaintPage(page);
 
-//     await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
-//     await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
+//     await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
+//     await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
 
 //     // Verify 2 files are present
 //     await expect(page.getByTestId("file-preview-item-0")).toBeVisible();
@@ -111,8 +111,8 @@ test.describe("Complaint Form - FILE VALIDATION", () => {
   test("should remove all files", async ({ page }) => {
     const addPage = new AddComplaintPage(page);
 
-    await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
-    await addPage.uploadFile("src/data/test-files/image-2MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
+    await addPage.uploadFile("e2e/src/data/test-files/image-2MB.jpg");
 
     await page.getByTestId("remove-all-files-button").click();
 

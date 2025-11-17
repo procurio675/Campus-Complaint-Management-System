@@ -35,7 +35,7 @@ test.describe("File Complaint - POSITIVE FLOW", () => {
       location: "Hostel A - 2nd Floor Bathroom",
       type: "Public",
       isAnonymous: false,
-      files: ["src/data/test-files/image-2MB.jpg"],
+      files: ["e2e/src/data/test-files/image-2MB.jpg"],
     });
 
     // Validate complaint ID format

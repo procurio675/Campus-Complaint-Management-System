@@ -231,7 +231,7 @@ const ComplaintsTable = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left">
+      <table className="w-full text-left" data-testid="complaints-table">
         <thead>
           <tr className="bg-gray-50 border-b">
             {showId && (
@@ -268,26 +268,44 @@ const ComplaintsTable = ({
           </tr>
         </thead>
         <tbody>
-          {complaints.map((complaint) => (
+          {complaints.map((complaint) => {
+            const shortId = getComplaintId(complaint?._id);
+            const mongoId = complaint?._id || '';
+
+            return (
             <tr
-              key={complaint?._id || Math.random()}
+              key={mongoId || Math.random()}
               className="border-b hover:bg-gray-50 transition-colors"
+              data-testid={`complaint-row-${shortId}`}
+              data-complaint-id={mongoId}
             >
               {showId && (
-                <td className="p-3 text-gray-700 font-mono text-sm">
-                  {getComplaintId(complaint?._id)}
+                <td className="p-3 text-gray-700 font-mono text-sm" data-testid={`complaint-id-${shortId}`}>
+                  {shortId}
                 </td>
               )}
               {showTitle && (
-                <td className="p-3 text-gray-700 max-w-xs truncate">
+                <td className="p-3 text-gray-700 max-w-xs truncate" data-testid={`complaint-title-${shortId}`}>
                   {complaint?.title}
+                  {complaint?.isAnonymous && (
+                    <span
+                      className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600"
+                      data-testid={`complaint-anonymous-${shortId}`}
+                    >
+                      Anonymous
+                    </span>
+                  )}
                 </td>
               )}
               {showCommittee && (
-                <td className="p-3 text-gray-700">{complaint?.category}</td>
+                <td className="p-3 text-gray-700" data-testid={`complaint-committee-${shortId}`}>
+                  {complaint?.category || 'N/A'}
+                </td>
               )}
               {showPriority && (
-                <td className="p-3">{getPriorityBadge(complaint?.priority)}</td>
+                <td className="p-3" data-testid={`complaint-priority-${shortId}`}>
+                  {getPriorityBadge(complaint?.priority)}
+                </td>
               )}
               {showStatus && (
                 <td className={`p-3 ${showPriority ? "whitespace-nowrap" : ""}`}>
@@ -333,7 +351,8 @@ const ComplaintsTable = ({
               )}
               {showActions && <td className="p-3">{renderActions(complaint)}</td>}
             </tr>
-          ))}
+          );
+          })}
         </tbody>
       </table>
     </div>

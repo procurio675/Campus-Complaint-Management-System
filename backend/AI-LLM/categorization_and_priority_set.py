@@ -415,6 +415,12 @@ def main():
     ap.add_argument("--body", default="")
     args = ap.parse_args()
 
+    # E2E Mode: Skip AI processing for faster, deterministic tests
+    if os.getenv("E2E_MODE") == "true":
+        out = {"status":"valid","committee":"Tech-Support","priority":"Medium"}
+        print(json.dumps(out, ensure_ascii=False))
+        return
+
     spam = _detect_spam(args.title, args.body)
     # Reject explicit sample/test spam
     if spam == 'sample':

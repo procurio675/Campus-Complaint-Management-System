@@ -282,26 +282,30 @@ export default function AddComplaintPage() {
     const trimmedTitle = clean(title || '');
     const trimmedDesc = clean(desc || '');
 
-    // Title Validation (Character-based)
+    // Step 2: LENGTH CHECKS FIRST (before quality checks)
+    // Title length validation (character-based)
     if (!trimmedTitle || trimmedTitle.length < 5) {
       errors.push("Title must be at least 5 characters long.");
     }
     if (trimmedTitle.length > 200) {
       errors.push("Title cannot exceed 200 characters.");
+      // Return early - no need to check quality if length is invalid
+      return { valid: errors.length === 0, errors };
     }
 
-    // Step 2: Run the 30-character validation with its own error message
+    // Description length validation
     const descLength = trimmedDesc.length;
     if (descLength < 30) {
       errors.push("Please describe your complaint in at least 30 characters.");
     }
-
     if (descLength > 3000) {
       errors.push("Description cannot exceed 3000 characters.");
+      // Return early - no need to check quality if length is invalid
+      return { valid: errors.length === 0, errors };
     }
 
-    // Step 3: Run the "repeats the same words" check (only if descLength >= 30)
-    // This check is skipped if description is too short (< 30 chars)
+    // Step 3: QUALITY CHECKS (only run if length is valid and >= 30 chars)
+    // Run the "repeats the same words" check (only if descLength >= 30)
     if (descLength >= 30) {
       // Check if description is a copy of the title
       if (isDescriptionCopyOfTitle(trimmedTitle, trimmedDesc)) {
@@ -313,8 +317,8 @@ export default function AddComplaintPage() {
       }
     }
 
-    // Character-repetition spam check
-    if (/(.)\1{29,}/.test(trimmedDesc)) {
+    // Character-repetition spam check (only if within length limits)
+    if (descLength <= 3000 && /(.)\1{29,}/.test(trimmedDesc)) {
       errors.push(
         "Description has excessive repetition of a single character — please revise."
       );
@@ -446,13 +450,30 @@ export default function AddComplaintPage() {
   return (
     <>
       {submitting && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white/95 border border-blue-100 rounded-2xl shadow-2xl p-6 max-w-sm w-[90%] text-center">
-            <div className="submission-spinner mx-auto mb-4" aria-hidden="true" />
-            <p className="text-lg font-semibold text-gray-800">
+        <div 
+          className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm"
+          data-testid="loading-modal-container"
+        >
+          <div 
+            className="bg-white/95 border border-blue-100 rounded-2xl shadow-2xl p-6 max-w-sm w-[90%] text-center"
+            data-testid="loading-modal-content"
+          >
+            <div 
+              className="submission-spinner mx-auto mb-4" 
+              aria-hidden="true"
+              data-testid="loading-spinner"
+            />
+            <p 
+              className="text-lg font-semibold text-gray-800"
+              data-testid="loading-message-title"
+            >
               Submitting your complaint
             </p>
-            <p className="text-sm text-gray-500 mt-2" aria-live="assertive">
+            <p 
+              className="text-sm text-gray-500 mt-2" 
+              aria-live="assertive"
+              data-testid="loading-message-subtitle"
+            >
               We are encrypting your attachments and routing the complaint. This may take a few seconds.
             </p>
           </div>
@@ -460,35 +481,64 @@ export default function AddComplaintPage() {
       )}
 
       {successDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          data-testid="success-modal-container"
+        >
           <div
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={closeSuccessModal}
+            data-testid="success-modal-backdrop"
           />
-          <div className="relative bg-white rounded-[32px] px-8 py-10 mx-4 w-full max-w-lg border border-blue-100 shadow-[0_28px_60px_rgba(15,23,42,0.18)] text-center">
-            <div className="success-tick mx-auto mb-6" aria-hidden="true" />
-            <p className="text-xs font-semibold tracking-[0.35em] text-sky-500 uppercase">
+          <div 
+            className="relative bg-white rounded-[32px] px-8 py-10 mx-4 w-full max-w-lg border border-blue-100 shadow-[0_28px_60px_rgba(15,23,42,0.18)] text-center"
+            data-testid="success-modal-content"
+          >
+            <div 
+              className="success-tick mx-auto mb-6" 
+              aria-hidden="true"
+              data-testid="success-tick-icon"
+            />
+            <p 
+              className="text-xs font-semibold tracking-[0.35em] text-sky-500 uppercase"
+              data-testid="success-label"
+            >
               Success
             </p>
-            <h2 className="text-2xl font-bold text-gray-900 mt-2">
+            <h2 
+              className="text-2xl font-bold text-gray-900 mt-2"
+              data-testid="success-title"
+            >
               Complaint Submitted
             </h2>
-            <p className="text-sm text-gray-500 mt-3">
+            <p 
+              className="text-sm text-gray-500 mt-3"
+              data-testid="success-message"
+            >
               We will notify you as progress is made. Keep an eye on your dashboard for updates.
             </p>
 
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mt-8 text-left">
+            <div 
+              className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mt-8 text-left"
+              data-testid="success-details-card"
+            >
               <p className="text-xs text-gray-500 uppercase tracking-wide">
                 Complaint ID
               </p>
-              <p className="text-xl font-semibold text-gray-900">
+              <p 
+                className="text-xl font-semibold text-gray-900"
+                data-testid="complaint-id-display"
+              >
                 {successDetails.complaintId}
               </p>
               <div className="mt-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">
                   Routed to
                 </p>
-                <p className="text-base font-medium text-gray-800">
+                <p 
+                  className="text-base font-medium text-gray-800"
+                  data-testid="routed-committee-display"
+                >
                   {successDetails.committee}
                 </p>
               </div>
@@ -498,12 +548,14 @@ export default function AddComplaintPage() {
               <button
                 onClick={handleViewComplaints}
                 className="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all"
+                data-testid="view-complaints-button"
               >
                 View My Complaints
               </button>
               <button
                 onClick={handleFileAnother}
                 className="flex-1 border border-blue-100 text-blue-700 font-semibold py-3 px-4 rounded-xl hover:bg-blue-50 transition-all"
+                data-testid="file-another-button"
               >
                 File Another
               </button>
@@ -512,20 +564,36 @@ export default function AddComplaintPage() {
         </div>
       )}
 
-      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+      <div 
+        className="bg-white p-8 rounded-xl shadow-lg border border-gray-100"
+        data-testid="add-complaint-form-container"
+      >
       
-        <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
+        <h1 
+          className="text-3xl font-bold text-gray-800 mb-2"
+          data-testid="page-title"
+        >
           File a New Complaint
         </h1>
         <br />
-        <p className="text-gray-600 mb-8">
+        <p 
+          className="text-gray-600 mb-8"
+          data-testid="page-description"
+        >
           Please provide accurate and detailed information. The system will
           automatically route your complaint to the relevant committee.
         </p>
-        <form onSubmit={submit} className="space-y-6">
+        <form 
+          onSubmit={submit} 
+          className="space-y-6"
+          data-testid="complaint-form"
+        >
           {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
+          <div data-testid="title-field-container">
+            <label 
+              className="block text-sm font-medium text-gray-700"
+              data-testid="title-label"
+            >
               Complaint Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -546,6 +614,7 @@ export default function AddComplaintPage() {
                   : "border-gray-300"
               } rounded-lg px-3 py-2 `}
               required
+              data-testid="title-input"
             />
             <div className="flex justify-between mt-1">
               <p
@@ -554,6 +623,7 @@ export default function AddComplaintPage() {
                     ? "text-red-500 font-medium"
                     : "text-gray-500"
                 }`}
+                data-testid="title-char-count"
               >
                 {form.title.length} / 200 characters
                 {form.title.length >= 200 && " — Character limit reached"}
@@ -562,8 +632,11 @@ export default function AddComplaintPage() {
           </div>
 
           {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
+          <div data-testid="description-field-container">
+            <label 
+              className="block text-sm font-medium text-gray-700"
+              data-testid="description-label"
+            >
               Detailed Description <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -584,6 +657,7 @@ export default function AddComplaintPage() {
                   : "border-gray-300"
               } rounded-lg px-3 py-2 `}
               required
+              data-testid="description-input"
             />
             <div className="flex justify-between mt-1">
               <p
@@ -592,6 +666,7 @@ export default function AddComplaintPage() {
                     ? "text-red-500 font-medium"
                     : "text-gray-500"
                 }`}
+                data-testid="description-char-count"
               >
                 {form.desc.length} / 3000 characters
                 {form.desc.length >= 3000 && " — Character limit reached"}
@@ -600,8 +675,11 @@ export default function AddComplaintPage() {
           </div>
 
           {/* Location */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
+          <div data-testid="location-field-container">
+            <label 
+              className="block text-sm font-medium text-gray-700"
+              data-testid="location-label"
+            >
               Location (optional)
             </label>
             <input
@@ -610,13 +688,17 @@ export default function AddComplaintPage() {
               onChange={handleChange}
               placeholder="e.g., Hostel A Room 214 / C-Block 2nd Floor"
               className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 "
+              data-testid="location-input"
             />
           </div>
 
           {/* File Upload */}
-          <div>
+          <div data-testid="attachments-field-container">
             <div className="flex justify-between items-center">
-              <label className="block text-sm font-medium text-gray-700">
+              <label 
+                className="block text-sm font-medium text-gray-700"
+                data-testid="attachments-label"
+              >
                 Attachments (optional)
               </label>
               {files.length > 0 && (
@@ -624,6 +706,7 @@ export default function AddComplaintPage() {
                   type="button"
                   onClick={clearAllFiles}
                   className="text-xs text-red-500 hover:underline"
+                  data-testid="remove-all-files-button"
                 >
                   Remove all
                 </button>
@@ -639,31 +722,44 @@ export default function AddComplaintPage() {
                 onChange={onFileChange}
                 accept=".jpg,.jpeg,.png,.mp4,.mov"
                 className="hidden"
+                data-testid="file-input"
               />
             </label>
 
             {errors.length > 0 &&
               errors.find((e) => e.toLowerCase().includes("file")) && (
-                <p className="text-sm text-red-500 mt-1">
+                <p 
+                  className="text-sm text-red-500 mt-1"
+                  data-testid="file-error-message"
+                >
                   {errors.find((e) => e.toLowerCase().includes("file"))}
                 </p>
               )}
 
             {preview.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-3 justify-items-start">
+              <div 
+                className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-3 justify-items-start"
+                data-testid="file-preview-container"
+              >
                 {preview.map((src, i) => (
-                  <div key={i} className="relative group w-full max-w-[200px]">
+                  <div 
+                    key={i} 
+                    className="relative group w-full max-w-[200px]"
+                    data-testid={`file-preview-item-${i}`}
+                  >
                     {files[i].type.includes("image") ? (
                       <a
                         href={src}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+                        data-testid={`file-preview-link-${i}`}
                       >
                         <img
                           src={src}
                           alt={`Preview of ${files[i].name}`}
                           className="h-12 w-full object-cover rounded-lg shadow-sm border hover:opacity-90 transition"
+                          data-testid={`file-preview-image-${i}`}
                         />
                       </a>
                     ) : (
@@ -673,6 +769,7 @@ export default function AddComplaintPage() {
                         rel="noopener noreferrer"
                         className="border rounded-lg px-2 py-1 text-xs text-gray-700 bg-gray-50 flex items-center justify-start h-12 w-full overflow-hidden text-ellipsis whitespace-nowrap hover:bg-blue-50 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
                         title={`Click to view ${files[i].name}`}
+                        data-testid={`file-preview-video-${i}`}
                       >
                         📄{" "}
                         <span className="ml-1 truncate">{files[i].name}</span>
@@ -687,6 +784,7 @@ export default function AddComplaintPage() {
                       }}
                       className="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full p-[3px] opacity-0 group-hover:opacity-100 transition focus:opacity-100 focus:ring-2 focus:ring-red-400"
                       title="Remove file"
+                      data-testid={`remove-file-button-${i}`}
                     >
                       <FaTimes size={9} />
                     </button>
@@ -697,17 +795,26 @@ export default function AddComplaintPage() {
           </div>
 
           {/* Complaint Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
+          <div data-testid="complaint-type-field-container">
+            <label 
+              className="block text-sm font-medium text-gray-700"
+              data-testid="complaint-type-label"
+            >
               Is this complaint personal or public?
             </label>
-            <p className="text-xs text-gray-500 mb-2">
+            <p 
+              className="text-xs text-gray-500 mb-2"
+              data-testid="complaint-type-description"
+            >
               Personal complaints are visible only to you and the concerned
               authority. Public complaints are visible to everyone (without
               revealing your identity) and can be upvoted.
             </p>
             <div className="flex gap-6 mt-1">
-              <label className="flex items-center gap-2">
+              <label 
+                className="flex items-center gap-2"
+                data-testid="type-personal-label"
+              >
                 <input
                   type="radio"
                   name="type"
@@ -715,11 +822,15 @@ export default function AddComplaintPage() {
                   checked={form.type === "Personal"}
                   onChange={handleChange}
                   className="text-blue-600 focus:ring-blue-500"
+                  data-testid="type-personal-radio"
                 />
                 <span className="text-sm text-gray-700">Personal</span>
               </label>
 
-              <label className="flex items-center gap-2">
+              <label 
+                className="flex items-center gap-2"
+                data-testid="type-public-label"
+              >
                 <input
                   type="radio"
                   name="type"
@@ -727,6 +838,7 @@ export default function AddComplaintPage() {
                   checked={form.type === "Public"}
                   onChange={handleChange}
                   className="text-blue-600 focus:ring-blue-500"
+                  data-testid="type-public-radio"
                 />
                 <span className="text-sm text-gray-700">
                   Public (faced by many)
@@ -736,8 +848,14 @@ export default function AddComplaintPage() {
           </div>
 
           {/* Submit Anonymously */}
-          <div className="mt-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div 
+            className="mt-4"
+            data-testid="anonymous-field-container"
+          >
+            <label 
+              className="flex items-center gap-2 cursor-pointer"
+              data-testid="anonymous-checkbox-label"
+            >
               <input
                 type="checkbox"
                 name="isAnonymous"
@@ -746,10 +864,14 @@ export default function AddComplaintPage() {
                 setForm((prev) => ({ ...prev, isAnonymous: e.target.checked }))
               }
               className="h-4 w-4 text-blue-600"
+              data-testid="anonymous-checkbox"
               />
               <span className="text-sm text-gray-700">
                 Submit Anonymously
-                <span className="text-gray-500 block text-xs mt-1">
+                <span 
+                  className="text-gray-500 block text-xs mt-1"
+                  data-testid="anonymous-description"
+                >
                 Your identity will be hidden from committees and other users, 
                 but your complaint will still be processed normally.
                 </span>
@@ -759,13 +881,27 @@ export default function AddComplaintPage() {
 
           {/* Error Display */}
           {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-red-800 mb-2">
+            <div 
+              className="bg-red-50 border border-red-200 rounded-lg p-4"
+              data-testid="error-container"
+            >
+              <p 
+                className="text-sm font-medium text-red-800 mb-2"
+                data-testid="error-title"
+              >
                 Please fix the following errors:
               </p>
-              <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+              <ul 
+                className="list-disc list-inside text-sm text-red-700 space-y-1"
+                data-testid="error-list"
+              >
                 {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
+                  <li 
+                    key={index}
+                    data-testid={`error-item-${index}`}
+                  >
+                    {error}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -779,6 +915,7 @@ export default function AddComplaintPage() {
               className={`inline-flex items-center gap-2 bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all ${
                 submitting ? "opacity-70 cursor-not-allowed" : ""
               }`}
+              data-testid="submit-complaint-button"
             >
               <FaPaperPlane />
               {submitting ? "Submitting..." : "Submit Complaint"}

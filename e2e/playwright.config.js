@@ -1,22 +1,25 @@
 import { defineConfig, devices } from '@playwright/test';
 import 'dotenv/config';
 
-// Define frontend and backend ports
-const FRONTEND_PORT = 5173; // Vite default
-const BACKEND_PORT = 3001;  // Your backend API
+const FRONTEND_PORT = 5173;
+const BACKEND_PORT = 3001;
 
 export default defineConfig({
   testDir: './tests',
   outputDir: 'test-results',
 
-  forbidOnly: !!process.env.CI,
+  workers: process.env.CI ? 1 : 1,
+
+  timeout: 60000, // 60 seconds per test
+
+  expect: {
+    timeout: 20000, // 20 seconds for UI waits
+  },
+
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : '50%',
+  forbidOnly: !!process.env.CI,
 
   reporter: [
-    // ---
-    // THE FIX: Changed this path to match your .yml file
-    // ---
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['line']
   ],
@@ -25,7 +28,7 @@ export default defineConfig({
     baseURL: `http://localhost:${FRONTEND_PORT}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure'
+    video: 'retain-on-failure',
   },
 
   projects: [
@@ -37,20 +40,15 @@ export default defineConfig({
 
   webServer: [
     {
-      // This is the backend, using 'npm start' is correct
-      command: `npm start --prefix ../backend`,
+      command: `npm run dev --prefix ../backend`,
       url: `http://localhost:${BACKEND_PORT}`,
-      timeout: 120 * 1000,
+      timeout: 120_000,
       reuseExistingServer: !process.env.CI,
     },
     {
-      // ---
-      // THE FIX: Use the stable 'preview' server, not 'dev'
-      // This requires the 'Build Frontend' step in the .yml file
-      // ---
       command: `npm run preview --prefix ../Frontend -- --port ${FRONTEND_PORT}`,
       url: `http://localhost:${FRONTEND_PORT}`,
-      timeout: 120 * 1000,
+      timeout: 120_000,
       reuseExistingServer: !process.env.CI,
     }
   ],

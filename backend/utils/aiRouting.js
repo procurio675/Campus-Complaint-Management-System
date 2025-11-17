@@ -341,6 +341,21 @@ function detectSpam(title, body) {
  * @returns {Promise<{committee: string, priority: string}>}
  */
 export async function classifyComplaint(title, body) {
+  // E2E Mode: Skip ALL AI/ML/LLM/Python processing for faster, deterministic tests
+  // This MUST be the FIRST check - before spam, ML, Python, anything!
+  console.log('[AI Routing] E2E_MODE value:', process.env.E2E_MODE);
+  
+if (process.env.E2E_MODE === "true") {
+  console.log("[AI Routing] Skipping Python");
+  return {
+    committee: "Tech-Support",
+    priority: "Medium"
+  };
+}
+
+
+  console.log('[AI Routing] ⚠️ E2E_MODE NOT ENABLED - Running full AI classification');
+
   const spamReason = detectSpam(title, body);
   if (spamReason) {
     const error = new Error(spamReason);
@@ -399,8 +414,10 @@ export async function classifyComplaint(title, body) {
       String(body ?? ''),
     ];
 
-    // Wrap Python execution in a promise with proper error handling
+    // ✅ TIMEOUT PROTECTION: Wrap Python execution with timeout
     let stdout, stderr;
+    const PYTHON_TIMEOUT = 20000; //20 seconds max for Python script
+    
     try {
       const result = await execFileAsync(pythonCmd, args, {
         cwd: path.join(__dirname, '..'),
@@ -496,6 +513,12 @@ export async function classifyComplaint(title, body) {
  * Returns a short string label for the subcategory.
  */
 export async function classifySubcategory(title, body, committeeType, allowedList) {
+  // E2E Mode: Skip subcategory classification
+  if (process.env.E2E_MODE === "true") {
+    console.log('[AI Routing] E2E_MODE enabled - skipping subcategory classification');
+    return null; // No subcategory in E2E mode
+  }
+
   const text = `${title || ''} ${body || ''}`.trim();
   const llmUrl = process.env.SUBCATEGORY_LLM_URL;
 

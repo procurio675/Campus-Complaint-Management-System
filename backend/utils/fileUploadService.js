@@ -2,38 +2,48 @@ import 'dotenv/config';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import fs from 'fs';
+import path from 'path';
 
-const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, E2E_MODE } = process.env;
+const isE2EMode = String(E2E_MODE).toLowerCase() === 'true';
 
-// This is your "Error Guard" (Point 2)
-// It checks for keys on startup, which is great.
-if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-  console.error("CRITICAL ERROR: Cloudinary credentials are not configured.");
-  // We throw an error to crash the app on startup if keys are missing.
-  throw new Error('Cloudinary credentials are not configured in environment variables');
+let storage;
+
+if (isE2EMode) {
+  const tempDir = path.join(process.cwd(), 'temp', 'e2e-uploads');
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  storage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, tempDir),
+    filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  });
+} else {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    console.error('CRITICAL ERROR: Cloudinary credentials are not configured.');
+    throw new Error('Cloudinary credentials are not configured in environment variables');
+  }
+
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME,
+    api_key: CLOUDINARY_API_KEY,
+    api_secret: CLOUDINARY_API_SECRET,
+    timeout: 60000, // 60 seconds timeout for uploads
+  });
+
+  storage = new CloudinaryStorage({
+    cloudinary,
+    params: (req, file) => {
+      const userId = req.user._id.toString();
+      return {
+        folder: `campus-complaints/${userId}`,
+        resource_type: file.mimetype.startsWith('video/') ? 'video' : 'image',
+      };
+    },
+  });
 }
-
-cloudinary.config({
-  cloud_name: CLOUDINARY_CLOUD_NAME,
-  api_key: CLOUDINARY_API_KEY,
-  api_secret: CLOUDINARY_API_SECRET,
-  timeout: 60000, // 60 seconds timeout for uploads
-});
-
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: (req, file) => {
-    // We get the user ID from req.user (which 'protect' middleware provides)
-    // The 'fileFilter' below already checked if req.user exists.
-    const userId = req.user._id.toString();
-
-    return {
-      folder: `campus-complaints/${userId}`,
-      // Auto-detect if it's a video or image for Cloudinary
-      resource_type: file.mimetype.startsWith('video/') ? 'video' : 'image',
-    };
-  },
-});
 
 // File size limit (10MB)
 const limits = {

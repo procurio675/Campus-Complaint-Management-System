@@ -146,7 +146,10 @@ export const createComplaint = async (req, res) => {
       } catch (notifyErr) {
         console.error('Failed to create committee notifications:', notifyErr);
       }
-    })();
+    })().catch(err => {
+      // ✅ Catch any unhandled errors from the async IIFE
+      console.error('Notification IIFE error:', err);
+    });
 
     // Return success response with committee information
     res.status(201).json({

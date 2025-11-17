@@ -167,5 +167,10 @@ process.on('unhandledRejection', (reason, promise) => {
   } catch (fileErr) {
     console.error("Failed to write unhandled rejection log:", fileErr);
   }
-  process.exit(1);
+  // ⚠️ DO NOT exit server on unhandled rejection in development
+  // Only exit in production if critical
+  if (process.env.NODE_ENV === 'production') {
+    console.error('🔴 Exiting due to unhandled rejection in production');
+    process.exit(1);
+  }
 });

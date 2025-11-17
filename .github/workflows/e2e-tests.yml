@@ -2,9 +2,9 @@ name: E2E Tests
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   test:
@@ -19,42 +19,66 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
+          cache: "npm"
 
-      - name: 📦 Install all dependencies (root, backend, frontend, e2e)
+      # ------------------------------
+      # INSTALL DEPENDENCIES
+      # ------------------------------
+      - name: 📦 Install root dependencies
         run: npm install
 
-      # ---
-      # 'Build Backend' step removed - it's not needed for a JS backend
-      # ---
+      - name: 📦 Install backend dependencies
+        run: npm install
+        working-directory: backend
 
+      - name: 📦 Install frontend dependencies
+        run: npm install
+        working-directory: Frontend
+
+      # ------------------------------
+      # BUILD FRONTEND
+      # ------------------------------
       - name: 🖌️ Build Frontend
-        # This IS needed for 'npm run preview'
-        run: npm run build --prefix Frontend
+        working-directory: Frontend
+        run: npm run build
 
+      # ------------------------------
+      # INSTALL PLAYWRIGHT
+      # ------------------------------
       - name: 🎭 Install Playwright browsers
         working-directory: e2e
         run: npx playwright install --with-deps
-      
+
+      # ------------------------------
+      # RUN TESTS
+      # ------------------------------
       - name: 🧪 Run Playwright E2E Tests
         env:
           CI: true
+          NODE_ENV: test
+          E2E_MODE: "true"     # ★ Critical
           API_BASE_URL: "http://localhost:3001"
-          MONGO_URI: '${{ secrets.MONGO_URI }}'
-          JWT_SECRET: '${{ secrets.JWT_SECRET }}'
-          EMAIL_USER: '${{ secrets.EMAIL_USER }}'
-          EMAIL_PASS: '${{ secrets.EMAIL_PASS }}'
-          GOOGLE_API_KEY: '${{ secrets.GOOGLE_API_KEY }}'
-          CLOUDINARY_CLOUD_NAME: '${{ secrets.CLOUDINARY_CLOUD_NAME }}'
-          CLOUDINARY_API_KEY: '${{ secrets.CLOUDINARY_API_KEY }}'
-          CLOUDINARY_API_SECRET: '${{ secrets.CLOUDINARY_API_SECRET }}'
-        # Playwright will now start the servers using its config
+
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }} # still passed but NOT used
         run: npx playwright test --config=e2e/playwright.config.js
 
+      # ------------------------------
+      # UPLOAD REPORT
+      # ------------------------------
       - name: 📊 Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: e2e/playwright-report/ 
+          path: e2e/playwright-report/
           retention-days: 7

@@ -84,19 +84,26 @@ for (const { role, selectRole } of roleTests) {
       });
     });
 
-    test('Password toggle changes input type', async () => {
-            await test.step('Check initial password state', async () => {
+    test('Password toggle shows and hides password', async () => {
+      await test.step('Check initial password state', async () => {
         await expect(loginFormPage.passwordInput).toHaveAttribute('type', 'password');
       });
 
-        await test.step('Toggle visibility to "text"', async () => {
+      await test.step('Enter password to reveal toggle button', async () => {
+        await loginFormPage.passwordInput.fill('TestPassword123');
+        await expect(loginFormPage.passwordToggleShow).toBeVisible();
+      });
+
+      await test.step('Toggle visibility to "text"', async () => {
         await loginFormPage.togglePasswordVisibility();
         await expect(loginFormPage.passwordInput).toHaveAttribute('type', 'text');
+        await expect(loginFormPage.passwordToggleHide).toBeVisible();
       });
 
-        await test.step('Toggle visibility back to "password"', async () => {
-          await loginFormPage.togglePasswordVisibility();
+      await test.step('Toggle visibility back to "password"', async () => {
+        await loginFormPage.togglePasswordVisibility();
         await expect(loginFormPage.passwordInput).toHaveAttribute('type', 'password');
+        await expect(loginFormPage.passwordToggleShow).toBeVisible();
       });
     });
   });

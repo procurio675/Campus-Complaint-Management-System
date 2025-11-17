@@ -76,6 +76,7 @@ const studentNavbarTestIds = {
   profileMenu: "user-dropdown-menu",
   profileLink: "dropdown-profile-link",
   logoutButton: "dropdown-logout-button",
+  menuButton: "sidebar-menu-button",
 };
 
 const DeleteConfirmationModal = ({
@@ -1647,6 +1648,7 @@ const AllComplaintsPage = () => {
 };
 
 export default function StudentDashboard() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -1661,6 +1663,8 @@ export default function StudentDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const closeSidebar = () => setIsSidebarOpen(false);
 
   // load logged-in user (stored at login) and derive display values
   let _storedUser = null;
@@ -1845,17 +1849,64 @@ export default function StudentDashboard() {
     };
   }, [dropdownRef, notificationRef]);
 
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleKeydown = (event) => {
+      if (event.key === "Escape") {
+        closeSidebar();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeydown);
+    return () => document.removeEventListener("keydown", handleKeydown);
+  }, []);
+
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      return undefined;
+    }
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, [isSidebarOpen]);
+
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex min-h-screen bg-gray-50">
       <DashboardSidebar
         portalLabel="Student Portal"
         logoInitials="CCR"
         logoRoute="/student-dashboard"
         navItems={studentSidebarNavItems}
         testIds={studentSidebarTestIds}
+        className={`top-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0`}
       />
-      <div className="flex-1 flex flex-col pl-64">
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] lg:hidden"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+      <div className="flex-1 flex flex-col w-full lg:pl-64">
         <DashboardNavbar
           title="Campus Complaint Resolve"
           profileName={profileName}
@@ -1881,10 +1932,14 @@ export default function StudentDashboard() {
               <p>No notifications yet</p>
             </>
           )}
+          showMenuButton
+          onMenuToggle={toggleSidebar}
+          isSidebarOpen={isSidebarOpen}
+          menuButtonTestId={studentNavbarTestIds.menuButton}
           testIds={studentNavbarTestIds}
         />
 
-        <main className="flex-1 overflow-y-auto p-8" data-testid="dashboard-main-content">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8" data-testid="dashboard-main-content">
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="profile" element={<ProfilePage />} />

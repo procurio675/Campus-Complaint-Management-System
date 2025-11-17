@@ -78,6 +78,7 @@ const adminNavbarTestIds = {
   profileMenu: "user-dropdown-menu",
   profileLink: "dropdown-profile-link",
   logoutButton: "dropdown-logout-button",
+  menuButton: "admin-sidebar-menu-button",
 };
 
 // Admin Dashboard Home with real-time complaints
@@ -1804,6 +1805,7 @@ const GeneralComplaintsPage = () => {
 };
 
 export default function AdminDashboard() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -1818,6 +1820,8 @@ export default function AdminDashboard() {
     location.pathname === "/admin-dashboard" ||
     location.pathname === "/admin-dashboard/";
   useBackLogoutGuard(navigate, { enabled: isHomeRoute });
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const closeSidebar = () => setIsSidebarOpen(false);
 
   // Read profile from localStorage and derive display values
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('ccms_user') : null;
@@ -1988,16 +1992,64 @@ export default function AdminDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeSidebar();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      return undefined;
+    }
+
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, [isSidebarOpen]);
+
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
       <DashboardSidebar
         portalLabel="Admin Portal"
         logoInitials="CCR"
         logoRoute="/admin-dashboard"
         navItems={adminSidebarNavItems}
+        className={`top-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0`}
       />
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] lg:hidden"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
 
-      <div className="flex-1 flex flex-col pl-64">
+      <div className="flex-1 flex flex-col w-full lg:pl-64">
         <DashboardNavbar
           title="Campus Complaint Resolve"
           profileName={profileName}
@@ -2023,10 +2075,14 @@ export default function AdminDashboard() {
               <p>No notifications yet</p>
             </>
           )}
+          showMenuButton
+          onMenuToggle={toggleSidebar}
+          isSidebarOpen={isSidebarOpen}
+          menuButtonTestId={adminNavbarTestIds.menuButton}
           testIds={adminNavbarTestIds}
         />
 
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Routes>
             <Route path="/" element={<AdminDashboardHome />} />
             <Route path="all-complaints" element={<AllComplaintsPage />} />

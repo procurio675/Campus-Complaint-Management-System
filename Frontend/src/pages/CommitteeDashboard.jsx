@@ -6,6 +6,7 @@ import {
   FaTachometerAlt,
   FaTasks,
   FaChartBar,
+  FaSpinner,
   FaFileAlt,
   FaEye,
   FaCheckCircle,

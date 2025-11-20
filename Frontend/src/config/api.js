@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'https://ccr-backend-lieb.onrender.com';
+const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || 'https://ccr-backend-lieb.onrender.com';
 
 export default API_BASE_URL;
 

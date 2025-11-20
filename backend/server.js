@@ -40,7 +40,14 @@ const envAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   : [];
 
-const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envAllowedOrigins]));
+// Allow additional origin provided via FRONTEND_URL or FRONTEND_ORIGIN env var
+const extraOrigins = [];
+if (process.env.FRONTEND_URL) extraOrigins.push(process.env.FRONTEND_URL.trim());
+if (process.env.FRONTEND_ORIGIN) extraOrigins.push(process.env.FRONTEND_ORIGIN.trim());
+
+const allowedOrigins = Array.from(
+  new Set([...defaultAllowedOrigins, ...envAllowedOrigins, ...extraOrigins])
+).filter(Boolean);
 
 app.use(
   cors({

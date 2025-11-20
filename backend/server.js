@@ -32,6 +32,10 @@ const defaultAllowedOrigins = [
   "http://127.0.0.1:3000",
 ];
 
+if (process.env.FRONTEND_URL) {
+  defaultAllowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 const envAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   : [];

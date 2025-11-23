@@ -125,8 +125,10 @@ const forgotPassword = async (req, res) => {
       return res.status(400).json({ message: 'Please provide your email address.' });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if user exists
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(404).json({ message: 'No account found with this email address.' });
     }
@@ -135,26 +137,23 @@ const forgotPassword = async (req, res) => {
     const otp = crypto.randomInt(100000, 999999).toString();
 
     // Delete any existing OTPs for this email
-    await OTP.deleteMany({ email: email.toLowerCase() });
+    await OTP.deleteMany({ email: normalizedEmail });
 
     // Save new OTP
     const otpDoc = new OTP({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       otp: otp,
     });
     await otpDoc.save();
 
     // Send OTP via email
-    const emailResult = await sendOTPEmail(email, otp);
+    const emailResult = await sendOTPEmail(normalizedEmail, otp);
     
     if (!emailResult.success) {
       return res.status(500).json({ 
         message: 'Failed to send OTP email. Please try again later.' 
       });
     }
-    
-    // For development - also log the OTP to console
-    console.log(`OTP for ${email}: ${otp}`);
 
     res.status(200).json({
       message: 'OTP sent successfully to your email address. Please check your inbox.',
